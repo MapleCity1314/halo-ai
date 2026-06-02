@@ -6,6 +6,7 @@ import type {
   TurnChunk,
   ModelAdapter,
   ModelCapabilities,
+  PricingInfo,
 } from "../src/index.js";
 /**
  * Mock adapter that returns pre-programmed responses.
@@ -15,31 +16,47 @@ export class MockAdapter implements ModelAdapter {
   readonly modelId = "mock-model";
   readonly contextWindow = 128_000;
   readonly capabilities: ModelCapabilities = {
-    prefixCaching: true,
     toolUse: true,
     streaming: true,
   };
 
+  /** Mock pricing for cache-savings tests. */
+  readonly pricing: PricingInfo = {
+    inputPricePer1k: 0.001,
+    cachedInputPricePer1k: 0.0002,
+  };
+
   chatFn:
     | ((
-        messages: ChatMessage[],
+        prefix: ChatMessage[],
+        history: ChatMessage[],
         tools?: ToolSpec[],
       ) => Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>)
     | null = null;
-  streamFn: ((messages: ChatMessage[], tools?: ToolSpec[]) => AsyncGenerator<TurnChunk>) | null =
-    null;
+  streamFn:
+    | ((
+        prefix: ChatMessage[],
+        history: ChatMessage[],
+        tools?: ToolSpec[],
+      ) => AsyncGenerator<TurnChunk>)
+    | null = null;
 
   async chat(
-    messages: ChatMessage[],
+    prefix: ChatMessage[],
+    history: ChatMessage[],
     tools?: ToolSpec[],
   ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
     if (!this.chatFn) throw new Error("MockAdapter.chat not configured");
-    return this.chatFn(messages, tools);
+    return this.chatFn(prefix, history, tools);
   }
 
-  async *stream(messages: ChatMessage[], tools?: ToolSpec[]): AsyncGenerator<TurnChunk> {
+  async *stream(
+    prefix: ChatMessage[],
+    history: ChatMessage[],
+    tools?: ToolSpec[],
+  ): AsyncGenerator<TurnChunk> {
     if (!this.streamFn) throw new Error("MockAdapter.stream not configured");
-    yield* this.streamFn(messages, tools);
+    yield* this.streamFn(prefix, history, tools);
   }
 }
 

@@ -115,10 +115,10 @@ describe("HaloSessionImpl", () => {
     const session = createSession(adapter);
     await session.send("hi");
 
-    // Second send: messages should contain [system, user:"hi", assistant:"Hello!", user:"next"]
-    adapter.chatFn = async (msgs) => {
-      // The second-to-last message should be the previous assistant response
-      const assistant = msgs[msgs.length - 2];
+    // Second send: history should contain [user:"hi", assistant:"Hello!", user:"next"]
+    adapter.chatFn = async (prefix, history) => {
+      // The second-to-last history entry should be the previous assistant response
+      const assistant = history[history.length - 2];
       expect(assistant!.role).toBe("assistant");
       expect(assistant!.content).toBe("Hello!");
       return { content: "ok", toolCalls: [], usage: defaultUsage };
@@ -241,10 +241,10 @@ describe("HaloSessionImpl", () => {
     await session.send("first");
     session.clearLog();
 
-    adapter.chatFn = async (msgs) => {
-      // After clearLog, only prefix (1 system message) + 1 user message
-      // plus no prior assistant messages
-      expect(msgs.length).toBe(2); // system + user
+    adapter.chatFn = async (prefix, history) => {
+      // After clearLog, history has only the current user message, no prior assistant.
+      expect(prefix.length).toBe(1); // system
+      expect(history.length).toBe(1); // user:"second"
       return { content: "fresh", toolCalls: [], usage: defaultUsage };
     };
 
@@ -302,12 +302,12 @@ describe("HaloSessionImpl", () => {
       adapter,
       system: "You are helpful.",
       context: {
-        prepare: (msgs, _ctxMax) => {
-          // Force truncation
+        prepare: (prefix, history, _ctxMax) => {
+          // Force truncation: drop all history
           return {
-            messages: msgs.slice(0, 2),
+            history: [],
             modified: true,
-            droppedCount: msgs.length - 2,
+            droppedCount: history.length,
           };
         },
       },
