@@ -1,13 +1,18 @@
 import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk } from "@halo-ai/core";
-import type { ModelAdapter, ModelCapabilities } from "@halo-ai/core";
+import type { ModelAdapter, ModelCapabilities, PricingInfo } from "@halo-ai/core";
 
 export class DeepSeekAdapter implements ModelAdapter {
   readonly modelId: string;
   readonly contextWindow = 128_000;
   readonly capabilities: ModelCapabilities = {
-    prefixCaching: true,
     toolUse: true,
     streaming: true,
+  };
+
+  /** DeepSeek pricing (USD per 1K tokens). */
+  readonly pricing: PricingInfo = {
+    inputPricePer1k: 0.00027,
+    cachedInputPricePer1k: 0.00007,
   };
 
   private _apiKey: string;
@@ -20,13 +25,15 @@ export class DeepSeekAdapter implements ModelAdapter {
   }
 
   async chat(
-    messages: ChatMessage[],
+    prefix: ChatMessage[],
+    history: ChatMessage[],
     tools?: ToolSpec[],
   ): Promise<{
     content: string;
     toolCalls: ToolCall[];
     usage: Usage;
   }> {
+    const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
       model: this.modelId,
       messages,
@@ -75,7 +82,12 @@ export class DeepSeekAdapter implements ModelAdapter {
     return { content, toolCalls, usage };
   }
 
-  async *stream(messages: ChatMessage[], tools?: ToolSpec[]): AsyncGenerator<TurnChunk> {
+  async *stream(
+    prefix: ChatMessage[],
+    history: ChatMessage[],
+    tools?: ToolSpec[],
+  ): AsyncGenerator<TurnChunk> {
+    const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
       model: this.modelId,
       messages,

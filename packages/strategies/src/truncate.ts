@@ -4,46 +4,44 @@ export class TruncateStrategy implements ContextStrategy {
   private _maxTokens: number;
 
   constructor(opts?: { maxTokens?: number }) {
-    // Default: 80% of DeepSeek's 128K context window
+    // Default: 80% of a 128K context window.
     this._maxTokens = opts?.maxTokens ?? 102_400;
   }
 
   prepare(
-    messages: ChatMessage[],
+    prefix: ChatMessage[],
+    history: ChatMessage[],
     _ctxMax: number,
   ): {
-    messages: ChatMessage[];
+    history: ChatMessage[];
     modified: boolean;
     summary?: string;
     droppedCount: number;
   } {
-    // Simple char-count heuristic (rough proxy for tokens).
-    const estimate = messages.reduce((sum, m) => sum + m.content.length, 0);
+    // Prefix is read-only — only history may be truncated.
+    const histEstimate = history.reduce((sum, m) => sum + m.content.length, 0);
+    const prefixEstimate = prefix.reduce((sum, m) => sum + m.content.length, 0);
+    const budgetChars = (this._maxTokens - prefixEstimate / 4) * 4;
 
-    if (estimate <= this._maxTokens * 4) {
-      return { messages, modified: false, droppedCount: 0 };
+    if (histEstimate <= budgetChars * 0.9) {
+      return { history, modified: false, droppedCount: 0 };
     }
 
-    // Keep the prefix (first 2 messages: system + optional few-shot)
-    // plus the most recent messages that fit the budget.
-    const prefixCount = 2;
-    const prefix = messages.slice(0, prefixCount);
-
+    // Keep the most recent messages that fit the remaining budget.
     let tailTokens = 0;
     const tail: ChatMessage[] = [];
-    for (let i = messages.length - 1; i >= prefixCount; i--) {
-      const msg = messages[i]!;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i]!;
       const size = msg.content.length;
-      if (tailTokens + size > this._maxTokens * 4 * 0.9) break;
+      if (tailTokens + size > budgetChars * 0.9) break;
       tailTokens += size;
       tail.unshift(msg);
     }
 
-    const result = [...prefix, ...tail];
-    const droppedCount = messages.length - result.length;
+    const droppedCount = history.length - tail.length;
 
     return {
-      messages: result,
+      history: tail,
       modified: droppedCount > 0,
       droppedCount,
     };
