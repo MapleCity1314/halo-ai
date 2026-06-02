@@ -1,0 +1,48 @@
+{
+  "name": "halo-ai",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "test": "turbo test",
+    "test:watch": "turbo test:watch",
+    "lint": "oxlint packages",
+    "format": "oxfmt packages",
+    "format:check": "oxfmt --check packages",
+    "typecheck": "tsc --build",
+    "clean": "turbo clean",
+    "changeset": "changeset",
+    "ci:version": "changeset version",
+    "ci:release": "turbo build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^22.0.0",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/halo-sdk/halo-ai"
+  },
+  "homepage": "https://github.com/halo-sdk/halo-ai#readme",
+  "keywords": [
+    "ai",
+    "llm",
+    "deepseek",
+    "cache-first",
+    "agent"
+  ]
+}
