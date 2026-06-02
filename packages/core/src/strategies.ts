@@ -3,11 +3,19 @@ import type { ChatMessage, ToolCall } from "./types.js";
 // ── Context strategy ──
 
 export interface ContextStrategy {
+  /**
+   * Prepare history for a context-limited send.
+   *
+   * `prefix` is READ-ONLY — strategies MUST NOT modify it.
+   * Only `history` may be truncated / summarized.
+   * This preserves the stable prefix for cache-hit guarantees.
+   */
   prepare(
-    messages: ChatMessage[],
+    prefix: ChatMessage[],
+    history: ChatMessage[],
     ctxMax: number,
   ): {
-    messages: ChatMessage[];
+    history: ChatMessage[];
     modified: boolean;
     summary?: string;
     droppedCount: number;

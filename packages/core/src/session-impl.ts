@@ -1,6 +1,6 @@
 import { StablePrefix } from "./prefix.js";
 import { MessageLog } from "./log.js";
-import type { ChatMessage, ToolCall, ToolSpec } from "./types.js";
+import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec } from "./types.js";
 import type {
   TurnResult,
   TurnChunk,
@@ -23,12 +23,18 @@ export class HaloSessionImpl {
   private _listeners: Map<SessionEvent, Set<(payload: unknown) => void>>;
   private _stats: SessionStats;
   private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+  private _toolExecutors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
 
   constructor(opts: HaloSessionOptions) {
     this._adapter = opts.adapter;
+
+    // Normalize tools: accept both ToolSpec[] and Record<string, ToolDefinition>.
+    const { toolSpecs, executors } = normalizeTools(opts.tools);
+    this._toolExecutors = executors;
+
     this._prefix = new StablePrefix({
       system: opts.system,
-      tools: opts.tools ?? [],
+      tools: toolSpecs,
       fewShots: opts.fewShots,
     });
     this._log = new MessageLog();
@@ -51,13 +57,13 @@ export class HaloSessionImpl {
       totalCompletionTokens: 0,
       pricingSnapshot: {
         recordedAt: Date.now(),
-        inputPricePer1k: DEEPSEEK_INPUT_PRICE,
-        cachedInputPricePer1k: DEEPSEEK_CACHED_INPUT_PRICE,
+        inputPricePer1k: this._adapter.pricing?.inputPricePer1k ?? 0,
+        cachedInputPricePer1k: this._adapter.pricing?.cachedInputPricePer1k ?? 0,
       },
       recentDiagnostics: [],
     };
 
-    if (this._adapter.capabilities.prefixCaching) {
+    if (this._adapter.pricing) {
       this._stats.caching = {
         totalCacheHitTokens: 0,
         totalCacheMissTokens: 0,
@@ -90,15 +96,34 @@ export class HaloSessionImpl {
 
     while (result.toolCalls.length > 0 && step < maxSteps) {
       step++;
-      if (!onToolCall) break;
 
       for (const call of result.toolCalls) {
-        const r = await onToolCall(call);
-        this._log.append({
-          role: "tool",
-          tool_call_id: call.id,
-          content: r.isError ? `ERROR: ${r.output}` : r.output,
-        });
+        const executor = this._toolExecutors.get(call.function.name);
+        if (executor) {
+          // Auto-execute when tool definition includes execute().
+          let parsed: Record<string, unknown>;
+          try {
+            parsed = JSON.parse(call.function.arguments);
+          } catch {
+            parsed = {};
+          }
+          const output = await executor(parsed);
+          this._log.append({
+            role: "tool",
+            tool_call_id: call.id,
+            content: output,
+          });
+        } else if (onToolCall) {
+          const r = await onToolCall(call);
+          this._log.append({
+            role: "tool",
+            tool_call_id: call.id,
+            content: r.isError ? `ERROR: ${r.output}` : r.output,
+          });
+        } else {
+          // No executor and no onToolCall — stop loop, return current result.
+          return result;
+        }
       }
 
       onStep?.({ step, content: result.content, toolCalls: result.toolCalls });
@@ -115,8 +140,9 @@ export class HaloSessionImpl {
 
   async *stream(input: string): AsyncGenerator<TurnChunk> {
     this._log.append({ role: "user", content: input });
-    const messages = this._buildMessages();
-    yield* this._adapter.stream(messages, this._prefix.tools());
+    const prefix = this._prefix.toMessages();
+    const history = this._log.toFullHistory();
+    yield* this._adapter.stream(prefix, history, this._prefix.tools());
   }
 
   async submitToolResult(result: ToolResult): Promise<TurnResult> {
@@ -130,11 +156,26 @@ export class HaloSessionImpl {
 
   // ── Prefix ──
 
-  addTool(spec: ToolSpec): void {
-    this._prefix.addTool(spec);
+  addTool(spec: ToolSpec): void;
+  addTool(name: string, def: ToolDefinition): void;
+  addTool(specOrName: ToolSpec | string, def?: ToolDefinition): void {
+    if (typeof specOrName === "string") {
+      // addTool(name, def)
+      const name = specOrName;
+      const d = def!;
+      const spec = definitionToSpec(name, d);
+      this._prefix.addTool(spec);
+      if (d.execute) {
+        this._toolExecutors.set(name, d.execute);
+      }
+    } else {
+      // addTool(spec)
+      this._prefix.addTool(specOrName);
+    }
   }
   removeTool(name: string): void {
     this._prefix.removeTool(name);
+    this._toolExecutors.delete(name);
   }
   addFewShot(msg: ChatMessage): void {
     this._prefix.addFewShot(msg);
@@ -146,11 +187,21 @@ export class HaloSessionImpl {
   // ── Keep-alive ──
 
   keepAlive(intervalMs?: number): { stop: () => void } {
+    // Delegate to adapter if it provides a custom keep-alive (e.g. Gemini).
+    if (this._adapter.keepAlive) {
+      return this._adapter.keepAlive(this._prefix.toMessages());
+    }
+
+    // Default: periodic ping to maintain server-side KV cache.
     const ms = intervalMs ?? 120_000;
     if (this._keepAliveTimer) clearInterval(this._keepAliveTimer);
     this._keepAliveTimer = setInterval(() => {
       this._adapter
-        .chat([...this._prefix.toMessages(), { role: "user", content: "ping" }], undefined)
+        .chat(
+          this._prefix.toMessages(),
+          [{ role: "user", content: "ping" }],
+          undefined,
+        )
         .catch(() => {
           /* keep-alive failure is silent */
         });
@@ -173,30 +224,34 @@ export class HaloSessionImpl {
 
   // ── Private ──
 
-  private _buildMessages(): ChatMessage[] {
-    const messages = [...this._prefix.toMessages(), ...this._log.toFullHistory()];
+  /** Resolve history, applying ContextStrategy (prefix is read-only). */
+  private _resolveHistory(): ChatMessage[] {
+    const prefix = this._prefix.toMessages();
+    let history = this._log.toFullHistory();
 
     if (this._context) {
       const ctxMax = this._adapter.contextWindow;
-      const prepared = this._context.prepare(messages, ctxMax);
+      const prepared = this._context.prepare(prefix, history, ctxMax);
       if (prepared.modified) {
         this._emit("context:truncated", {
           droppedCount: prepared.droppedCount,
           summary: prepared.summary,
         });
       }
-      return prepared.messages;
+      return prepared.history;
     }
 
-    return messages;
+    return history;
   }
 
   private async _callModel(): Promise<TurnResult> {
-    const messages = this._buildMessages();
+    const prefix = this._prefix.toMessages();
+    const history = this._resolveHistory();
     const tools = this._prefix.tools();
 
     const { content, toolCalls, usage } = await this._adapter.chat(
-      messages,
+      prefix,
+      history,
       tools.length > 0 ? tools : undefined,
     );
 
@@ -266,11 +321,51 @@ export class HaloSessionImpl {
   }
 
   private _computeSavings(cacheHitTokens: number): number | null {
-    if (!this._adapter.capabilities.prefixCaching) return null;
-    return (cacheHitTokens / 1000) * (DEEPSEEK_INPUT_PRICE - DEEPSEEK_CACHED_INPUT_PRICE);
+    if (!this._adapter.pricing) return null;
+    return (
+      (cacheHitTokens / 1000) *
+      (this._adapter.pricing.inputPricePer1k - this._adapter.pricing.cachedInputPricePer1k)
+    );
   }
 }
 
-// DeepSeek pricing (USD per 1K tokens).
-const DEEPSEEK_INPUT_PRICE = 0.00027;
-const DEEPSEEK_CACHED_INPUT_PRICE = 0.00007;
+// ── Tool normalization ──
+
+function definitionToSpec(name: string, def: ToolDefinition): ToolSpec {
+  return {
+    type: "function",
+    function: {
+      name,
+      description: def.description,
+      parameters: def.parameters,
+    },
+  };
+}
+
+function normalizeTools(tools: ToolSpec[] | Record<string, ToolDefinition> | undefined): {
+  toolSpecs: ToolSpec[];
+  executors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
+} {
+  const executors = new Map<string, (args: Record<string, unknown>) => string | Promise<string>>();
+
+  if (!tools) return { toolSpecs: [], executors };
+
+  if (Array.isArray(tools)) {
+    return { toolSpecs: tools, executors };
+  }
+
+  const specs: ToolSpec[] = [];
+  for (const [name, def] of Object.entries(tools)) {
+    specs.push(definitionToSpec(name, def));
+    if (def.execute) {
+      executors.set(
+        name,
+        def.execute as (args: Record<string, unknown>) => string | Promise<string>,
+      );
+    }
+  }
+
+  return { toolSpecs: specs, executors };
+}
+
+
