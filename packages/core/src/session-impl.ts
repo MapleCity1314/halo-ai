@@ -5,27 +5,27 @@ import type {
   TurnResult,
   TurnChunk,
   ToolResult,
-  SessionEvent,
+  AgentEvent,
   SessionStats,
-  HaloSessionOptions,
+  HaloAgentOptions,
 } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
 
 /** Internal implementation. Exported for testing only. */
-export class HaloSessionImpl {
+export class HaloAgentImpl {
   private _adapter: ModelAdapter;
   private _prefix: StablePrefix;
   private _log: MessageLog;
   private _context: ContextStrategy | undefined;
   private _repair: RepairStrategy | undefined;
   private _confirmation: ConfirmationStrategy | undefined;
-  private _listeners: Map<SessionEvent, Set<(payload: unknown) => void>>;
+  private _listeners: Map<AgentEvent, Set<(payload: unknown) => void>>;
   private _stats: SessionStats;
   private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   private _toolExecutors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
 
-  constructor(opts: HaloSessionOptions) {
+  constructor(opts: HaloAgentOptions) {
     this._adapter = opts.adapter;
 
     // Normalize tools: accept both ToolSpec[] and Record<string, ToolDefinition>.
@@ -45,7 +45,7 @@ export class HaloSessionImpl {
 
     // Register external listener if provided.
     if (opts.on) {
-      for (const ev of ["cache:miss", "context:truncated", "repair:applied"] as SessionEvent[]) {
+      for (const ev of ["cache:miss", "context:truncated", "repair:applied"] as AgentEvent[]) {
         this._listeners.set(ev, new Set());
         this._listeners.get(ev)!.add(opts.on as (p: unknown) => void);
       }
@@ -209,6 +209,13 @@ export class HaloSessionImpl {
     return { stop: () => this._stopKeepAlive() };
   }
 
+  // ── Hydrate ──
+
+  /** Restore conversation state from external history. */
+  hydrate(messages: ChatMessage[]): void {
+    this._log.hydrate(messages);
+  }
+
   // ── Lifecycle ──
 
   clearLog(): void {
@@ -301,7 +308,7 @@ export class HaloSessionImpl {
     return { content, toolCalls: repairedCalls, usage };
   }
 
-  private _emit(event: SessionEvent, payload: unknown): void {
+  private _emit(event: AgentEvent, payload: unknown): void {
     const handlers = this._listeners.get(event);
     if (!handlers) return;
     for (const fn of handlers) {

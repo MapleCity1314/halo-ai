@@ -9,7 +9,7 @@ pnpm add @halo-ai/core @halo-ai/adapters
 ```
 
 ```typescript
-import { Halo } from "@halo-ai/core";
+import { Halo, tool } from "@halo-ai/core";
 import { DeepSeekAdapter } from "@halo-ai/adapters";
 
 const halo = new Halo({
@@ -18,30 +18,21 @@ const halo = new Halo({
 
 const session = halo.session({
   system: "You are a helpful assistant.",
-  tools: [
-    {
-      type: "function",
-      function: {
-        name: "get_weather",
-        description: "Get the weather for a city",
-        parameters: {
-          type: "object",
-          properties: { city: { type: "string" } },
-          required: ["city"],
-        },
+  tools: {
+    get_weather: tool({
+      description: "Get the weather for a city",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
       },
-    },
-  ],
-});
-
-const result = await session.run("What's the weather in Paris?", {
-  onToolCall: async (call) => {
-    if (call.function.name === "get_weather") {
-      return { toolCallId: call.id, output: "Sunny, 22°C" };
-    }
-    return { toolCallId: call.id, output: "Unknown tool" };
+      execute: async ({ city }) => `Sunny, 22°C in ${city}`,
+    }),
   },
 });
+
+const result = await session.run("What's the weather in Paris?");
+// tool is auto-executed — no onToolCall needed!
 
 console.log(result.content);
 ```

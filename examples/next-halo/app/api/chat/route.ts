@@ -1,13 +1,19 @@
 import { toDataStream } from "@halo-ai/stream";
 import { DeepSeekAdapter } from "@halo-ai/adapters";
+import { Halo } from "@halo-ai/core";
 import type { ChatMessage } from "@halo-ai/core";
+
+const adapter = new DeepSeekAdapter({
+  apiKey: process.env.DEEPSEEK_API_KEY!,
+});
+
+const halo = new Halo({ adapter });
 
 /**
  * POST /api/chat
  *
  * Receives UIMessages from `useChat()` (Vercel AI SDK format),
- * converts them to Halo ChatMessages, streams the response
- * via DeepSeek with prefix caching.
+ * hydrates a HaloAgent with prior history, streams the response.
  */
 export async function POST(req: Request) {
   const { messages } = (await req.json()) as {
@@ -16,41 +22,25 @@ export async function POST(req: Request) {
 
   // Convert useChat UIMessages to Halo ChatMessages.
   const chatMessages: ChatMessage[] = messages
-    .filter((m) => m.role !== "system") // system prompt goes in prefix
+    .filter((m) => m.role !== "system")
     .map((m) => ({
       role: m.role as ChatMessage["role"],
       content: m.content,
     }));
 
-  const adapter = new DeepSeekAdapter({
-    apiKey: process.env.DEEPSEEK_API_KEY!,
+  // The last message is the new user input — everything before it is history.
+  const lastMessage = chatMessages.pop()!;
+  const priorMessages = chatMessages;
+
+  const agent = halo.agent({
+    system: "You are a helpful assistant.",
   });
 
-  // Cache-first: system prompt in stable prefix, conversation in dynamic history.
-  const prefix: ChatMessage[] = [
-    { role: "system", content: "You are a helpful assistant." },
-  ];
+  // Hydrate prior conversation so the agent has full context.
+  if (priorMessages.length > 0) {
+    agent.hydrate(priorMessages);
+  }
 
-  const stream = adapter.stream(prefix, chatMessages);
+  const stream = agent.stream(lastMessage.content);
   return toDataStream(stream);
 }
-
-/*
- * ── Production pattern (stateful sessions) ──
- *
- * The demo above uses adapter.stream() directly for stateless simplicity.
- * For production with tool calling, keep-alive, and full cache tracking:
- *
- *   import { Halo } from "@halo-ai/core";
- *
- *   const halo = new Halo({ adapter });
- *   const session = halo.session({
- *     system: "You are a helpful assistant.",
- *     tools: { ... },
- *   });
- *
- *   const result = await session.run(userInput);
- *   // or for streaming: session.stream(userInput) + toDataStream()
- *
- *   console.log(session.stats.caching?.cacheHitRate);
- */

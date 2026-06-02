@@ -20,7 +20,7 @@ export interface ToolCall {
   };
 }
 
-/** A tool definition registered with the session. */
+/** A tool definition in OpenAI function-calling format. */
 export interface ToolSpec {
   type: "function";
   function: {
@@ -28,6 +28,18 @@ export interface ToolSpec {
     description: string;
     parameters: Record<string, unknown>; // JSON Schema
   };
+}
+
+/**
+ * A tool definition with an optional built-in execute function.
+ * Pass `Record<string, ToolDefinition>` to `halo.session({ tools: {...} })`
+ * and `execute` will be called automatically — no `onToolCall` needed.
+ */
+export interface ToolDefinition<TArgs = Record<string, unknown>> {
+  description: string;
+  parameters: Record<string, unknown>;
+  /** If provided, run() calls this automatically when the model requests this tool. */
+  execute?: (args: TArgs) => string | Promise<string>;
 }
 
 /** Token usage for a single model call. */

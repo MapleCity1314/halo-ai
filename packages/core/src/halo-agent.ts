@@ -1,30 +1,30 @@
-import type { ChatMessage, ToolCall, ToolSpec } from "./types.js";
+import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec } from "./types.js";
 import type {
   TurnResult,
   TurnChunk,
   ToolResult,
   SessionStats,
-  HaloSessionOptions,
+  HaloAgentOptions,
 } from "./session.js";
-import { HaloSessionImpl } from "./session-impl.js";
+import { HaloAgentImpl } from "./session-impl.js";
 
 /**
- * Public API for a single cache-aware conversation session.
+ * A cache-aware AI agent with automatic tool-call loop.
  *
- * Create one via `new HaloSession(opts)` or `halo.session(opts)`.
- * Each session maintains a stable prefix (system prompt + tools + few-shots)
- * that enables DeepSeek's prefix caching across turns.
+ * Create one via `new HaloAgent(opts)` or `halo.agent(opts)`.
+ * Each agent maintains a stable prefix (system prompt + tools + few-shots)
+ * that enables prefix caching across turns.
  */
-export class HaloSession {
-  private _impl: HaloSessionImpl;
+export class HaloAgent {
+  private _impl: HaloAgentImpl;
 
-  constructor(opts: HaloSessionOptions) {
-    this._impl = new HaloSessionImpl(opts);
+  constructor(opts: HaloAgentOptions) {
+    this._impl = new HaloAgentImpl(opts);
   }
 
   // ── Core ──
 
-  /** Read-only session statistics. Updated after every turn. */
+  /** Read-only agent statistics. Updated after every turn. */
   get stats(): Readonly<SessionStats> {
     return this._impl.stats;
   }
@@ -64,9 +64,16 @@ export class HaloSession {
 
   // ── Prefix ──
 
-  /** Add a tool to the session. Triggers cache miss for the NEXT turn only. */
-  addTool(spec: ToolSpec): void {
-    this._impl.addTool(spec);
+  /** Add a tool to the agent. Triggers cache miss for the NEXT turn only. */
+  addTool(spec: ToolSpec): void;
+  /** Add a named tool with an optional execute function. */
+  addTool(name: string, def: ToolDefinition): void;
+  addTool(specOrName: ToolSpec | string, def?: ToolDefinition): void {
+    if (typeof specOrName === "string") {
+      this._impl.addTool(specOrName, def!);
+    } else {
+      this._impl.addTool(specOrName);
+    }
   }
   /** Remove a tool. Same cache-miss semantics. */
   removeTool(name: string): void {
@@ -90,6 +97,13 @@ export class HaloSession {
    */
   keepAlive(intervalMs?: number): { stop: () => void } {
     return this._impl.keepAlive(intervalMs);
+  }
+
+  // ── Hydrate ──
+
+  /** Restore conversation state from external history (e.g. previous API calls). */
+  hydrate(messages: ChatMessage[]): void {
+    this._impl.hydrate(messages);
   }
 
   // ── Lifecycle ──

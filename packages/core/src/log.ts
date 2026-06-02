@@ -21,6 +21,12 @@ export class MessageLog {
     this._version++;
   }
 
+  /** Replace all entries. Use to restore conversation state from external history. */
+  hydrate(messages: ChatMessage[]): void {
+    this._entries = [...messages];
+    this._version++;
+  }
+
   /** Returns a shallow copy of the full history. */
   toFullHistory(): ChatMessage[] {
     return this._entries.map((e) => ({ ...e }));

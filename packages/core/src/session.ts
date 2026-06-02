@@ -1,4 +1,4 @@
-import type { ChatMessage, ToolCall, ToolSpec, Usage } from "./types.js";
+import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
 import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
 import type { ModelAdapter } from "./model-adapter.js";
 
@@ -28,7 +28,7 @@ export type TurnChunk =
 
 // ── Events ──
 
-export type SessionEvent = "cache:miss" | "context:truncated" | "repair:applied";
+export type AgentEvent = "cache:miss" | "context:truncated" | "repair:applied";
 
 // ── Cache diagnostics ──
 
@@ -65,16 +65,24 @@ export interface SessionStats {
 
 // ── Session options ──
 
-export interface HaloSessionOptions {
+export interface HaloAgentOptions {
   adapter: ModelAdapter;
   system: string;
 
-  tools?: ToolSpec[];
+  /**
+   * Tools available to the model.
+   *
+   * Accepts either a flat array of `ToolSpec` objects (backward-compatible),
+   * or a named record of `ToolDefinition` objects. When `ToolDefinition`
+   * includes `execute`, the `run()` method calls it automatically —
+   * no `onToolCall` callback needed.
+   */
+  tools?: ToolSpec[] | Record<string, ToolDefinition>;
   fewShots?: ChatMessage[];
 
   context?: ContextStrategy;
   repair?: RepairStrategy;
   confirmation?: ConfirmationStrategy;
 
-  on?: (event: SessionEvent, payload: unknown) => void;
+  on?: (event: AgentEvent, payload: unknown) => void;
 }

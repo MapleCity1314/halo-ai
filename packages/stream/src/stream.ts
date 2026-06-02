@@ -47,7 +47,7 @@ export function toDataStream(
 }
 
 /**
- * Custom stream entry. Does not go through HaloSession.
+ * Custom stream entry. Does not go through HaloAgent.
  */
 export function createHaloStream(
   fn: (ctrl: {

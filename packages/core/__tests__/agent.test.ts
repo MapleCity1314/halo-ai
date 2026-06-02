@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { HaloSessionImpl } from "../src/session-impl.js";
+import { HaloAgentImpl } from "../src/session-impl.js";
 import {
   MockAdapter,
   defaultUsage,
@@ -13,15 +13,15 @@ function createAdapter() {
   return new MockAdapter();
 }
 
-function createSession(adapter: MockAdapter, opts?: { tools?: ToolCall[] }) {
-  return new HaloSessionImpl({
+function createAgent(adapter: MockAdapter, opts?: { tools?: ToolCall[] }) {
+  return new HaloAgentImpl({
     adapter,
     system: "You are a helpful assistant.",
     tools: opts?.tools ? undefined : [sampleToolSpec],
   });
 }
 
-describe("HaloSessionImpl", () => {
+describe("HaloAgentImpl", () => {
   // ── send() ──
 
   it("send returns content and updates stats", async () => {
@@ -32,14 +32,14 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    const result = await session.send("hi");
+    const agent = createAgent(adapter);
+    const result = await agent.send("hi");
 
     expect(result.content).toBe("Hello!");
     expect(result.toolCalls).toEqual([]);
-    expect(session.stats.turns).toBe(1);
-    expect(session.stats.totalPromptTokens).toBe(100);
-    expect(session.stats.totalCompletionTokens).toBe(50);
+    expect(agent.stats.turns).toBe(1);
+    expect(agent.stats.totalPromptTokens).toBe(100);
+    expect(agent.stats.totalCompletionTokens).toBe(50);
   });
 
   it("send accumulates stats across multiple calls", async () => {
@@ -50,13 +50,13 @@ describe("HaloSessionImpl", () => {
       return { content: `msg${callCount}`, toolCalls: [], usage: defaultUsage };
     };
 
-    const session = createSession(adapter);
-    await session.send("a");
-    await session.send("b");
+    const agent = createAgent(adapter);
+    await agent.send("a");
+    await agent.send("b");
 
-    expect(session.stats.turns).toBe(2);
-    expect(session.stats.totalPromptTokens).toBe(200);
-    expect(session.stats.totalCompletionTokens).toBe(100);
+    expect(agent.stats.turns).toBe(2);
+    expect(agent.stats.totalPromptTokens).toBe(200);
+    expect(agent.stats.totalCompletionTokens).toBe(100);
   });
 
   it("send emits cache:miss on second turn when cache miss occurs", async () => {
@@ -73,15 +73,15 @@ describe("HaloSessionImpl", () => {
       };
     };
 
-    const session = new HaloSessionImpl({
+    const agent = new HaloAgentImpl({
       adapter,
       system: "You are helpful.",
       // on callback receives payload (not event type)
       on: (payload) => events.push(payload),
     });
 
-    await session.send("a");
-    await session.send("b");
+    await agent.send("a");
+    await agent.send("b");
 
     expect(events.length).toBeGreaterThanOrEqual(1);
     expect(events[0]).toHaveProperty("type", "unknown");
@@ -95,13 +95,13 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    await session.send("a");
+    const agent = createAgent(adapter);
+    await agent.send("a");
 
-    expect(session.stats.caching).toBeDefined();
-    expect(session.stats.caching!.totalCacheHitTokens).toBe(80);
-    expect(session.stats.caching!.totalCacheMissTokens).toBe(20);
-    expect(session.stats.caching!.estimatedSavingsUsd).toBeGreaterThan(0);
+    expect(agent.stats.caching).toBeDefined();
+    expect(agent.stats.caching!.totalCacheHitTokens).toBe(80);
+    expect(agent.stats.caching!.totalCacheMissTokens).toBe(20);
+    expect(agent.stats.caching!.estimatedSavingsUsd).toBeGreaterThan(0);
   });
 
   it("send records assistant message in log", async () => {
@@ -112,8 +112,8 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    await session.send("hi");
+    const agent = createAgent(adapter);
+    await agent.send("hi");
 
     // Second send: history should contain [user:"hi", assistant:"Hello!", user:"next"]
     adapter.chatFn = async (prefix, history) => {
@@ -123,7 +123,7 @@ describe("HaloSessionImpl", () => {
       expect(assistant!.content).toBe("Hello!");
       return { content: "ok", toolCalls: [], usage: defaultUsage };
     };
-    await session.send("next");
+    await agent.send("next");
   });
 
   // ── run() with tool calls ──
@@ -139,10 +139,10 @@ describe("HaloSessionImpl", () => {
       return { content: "Done!", toolCalls: [], usage: defaultUsage };
     };
 
-    const session = createSession(adapter);
+    const agent = createAgent(adapter);
     const steps: { step: number }[] = [];
 
-    const result = await session.run("do it", {
+    const result = await agent.run("do it", {
       onToolCall: async () => ({ toolCallId: "call_1", output: "sunny" }),
       onStep: (s) => steps.push(s),
     });
@@ -151,7 +151,7 @@ describe("HaloSessionImpl", () => {
     expect(steps.length).toBe(1);
     expect(steps[0]!.step).toBe(1);
     expect(steps[0]!.toolCalls).toEqual([sampleToolCall]);
-    expect(session.stats.turns).toBe(2); // two model calls
+    expect(agent.stats.turns).toBe(2); // two model calls
   });
 
   it("run stops at maxSteps", async () => {
@@ -162,14 +162,14 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    const result = await session.run("do it", {
+    const agent = createAgent(adapter);
+    const result = await agent.run("do it", {
       maxSteps: 2,
       onToolCall: async () => ({ toolCallId: "call_1", output: "ok" }),
     });
 
     expect(result.toolCalls).toEqual([sampleToolCall]);
-    expect(session.stats.turns).toBe(3); // initial + 2 steps (2 tool rounds)
+    expect(agent.stats.turns).toBe(3); // initial + 2 steps (2 tool rounds)
   });
 
   it("run stops when no onToolCall provided", async () => {
@@ -180,12 +180,12 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    const result = await session.run("do it");
+    const agent = createAgent(adapter);
+    const result = await agent.run("do it");
 
-    // No onToolCall → tools not executed, loop stops after first call
+    // No onToolCall �?tools not executed, loop stops after first call
     expect(result.toolCalls).toEqual([sampleToolCall]);
-    expect(session.stats.turns).toBe(1);
+    expect(agent.stats.turns).toBe(1);
   });
 
   // ── submitToolResult ──
@@ -198,15 +198,15 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    const result = await session.submitToolResult({
+    const agent = createAgent(adapter);
+    const result = await agent.submitToolResult({
       toolCallId: "call_1",
       output: "result data",
     });
 
     expect(result.content).toBe("Done after tool");
     // submitToolResult doesn't log user message, so turns=1
-    expect(session.stats.turns).toBe(1);
+    expect(agent.stats.turns).toBe(1);
   });
 
   it("submitToolResult with error marks isError", async () => {
@@ -217,8 +217,8 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    const result = await session.submitToolResult({
+    const agent = createAgent(adapter);
+    const result = await agent.submitToolResult({
       toolCallId: "call_1",
       output: "something went wrong",
       isError: true,
@@ -237,9 +237,9 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = createSession(adapter);
-    await session.send("first");
-    session.clearLog();
+    const agent = createAgent(adapter);
+    await agent.send("first");
+    agent.clearLog();
 
     adapter.chatFn = async (prefix, history) => {
       // After clearLog, history has only the current user message, no prior assistant.
@@ -248,7 +248,7 @@ describe("HaloSessionImpl", () => {
       return { content: "fresh", toolCalls: [], usage: defaultUsage };
     };
 
-    const result = await session.send("second");
+    const result = await agent.send("second");
     expect(result.content).toBe("fresh");
   });
 
@@ -263,7 +263,7 @@ describe("HaloSessionImpl", () => {
     });
 
     const repairEvents: unknown[] = [];
-    const session = new HaloSessionImpl({
+    const agent = new HaloAgentImpl({
       adapter,
       system: "You are helpful.",
       repair: {
@@ -279,7 +279,7 @@ describe("HaloSessionImpl", () => {
       on: (payload) => repairEvents.push(payload),
     });
 
-    const result = await session.send("test");
+    const result = await agent.send("test");
     expect(result.toolCalls).toEqual([sampleToolCall]);
     expect(repairEvents.length).toBe(1);
   });
@@ -298,7 +298,7 @@ describe("HaloSessionImpl", () => {
       usage: defaultUsage,
     });
 
-    const session = new HaloSessionImpl({
+    const agent = new HaloAgentImpl({
       adapter,
       system: "You are helpful.",
       context: {
@@ -315,7 +315,7 @@ describe("HaloSessionImpl", () => {
       on: (payload) => truncateEvents.push(payload),
     });
 
-    await session.send("hi");
+    await agent.send("hi");
     expect(truncateEvents.length).toBe(1);
   });
 });

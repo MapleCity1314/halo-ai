@@ -10,16 +10,16 @@ export type {
   TurnResult,
   TurnChunk,
   ToolResult,
-  SessionEvent,
+  AgentEvent,
   CacheMissReason,
   SessionStats,
   PricingSnapshot,
-  HaloSessionOptions,
+  HaloAgentOptions,
 } from "./session.js";
 
 export { StablePrefix } from "./prefix.js";
 export { MessageLog } from "./log.js";
-export { HaloSession } from "./halo-session.js";
+export { HaloAgent } from "./halo-agent.js";
 export { Halo } from "./halo.js";
 export { tool } from "./tool.js";
-export { HaloSessionImpl } from "./session-impl.js";
+export { HaloAgentImpl } from "./session-impl.js";

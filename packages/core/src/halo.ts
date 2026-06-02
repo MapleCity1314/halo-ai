@@ -1,7 +1,8 @@
-import { HaloSession } from "./halo-session.js";
-import type { HaloSessionOptions, SessionEvent } from "./session.js";
+import { HaloAgent } from "./halo-agent.js";
+import type { HaloAgentOptions, AgentEvent } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
+import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";
 
 export class Halo {
   private _adapter: ModelAdapter;
@@ -10,28 +11,28 @@ export class Halo {
     this._adapter = opts.adapter;
   }
 
-  session(opts: {
+  agent(opts: {
     system: string;
-    tools?: import("./types.js").ToolSpec[];
-    fewShots?: import("./types.js").ChatMessage[];
+    tools?: ToolSpec[] | Record<string, ToolDefinition>;
+    fewShots?: ChatMessage[];
 
-    context?: "truncate" | "summarize" | ContextStrategy;
-    repair?: "basic" | "full" | RepairStrategy;
-    confirmation?: "confirm" | ConfirmationStrategy;
+    context?: ContextStrategy;
+    repair?: RepairStrategy;
+    confirmation?: ConfirmationStrategy;
 
-    contextOptions?: { maxTokens?: number };
-    repairOptions?: { stormThreshold?: number; stormWindow?: number };
-
-    on?: (event: SessionEvent, payload: unknown) => void;
-  }): HaloSession {
-    const sessionOpts: HaloSessionOptions = {
+    on?: (event: AgentEvent, payload: unknown) => void;
+  }): HaloAgent {
+    const agentOpts: HaloAgentOptions = {
       adapter: this._adapter,
       system: opts.system,
       tools: opts.tools,
       fewShots: opts.fewShots,
+      context: opts.context,
+      repair: opts.repair,
+      confirmation: opts.confirmation,
       on: opts.on,
     };
 
-    return new HaloSession(sessionOpts);
+    return new HaloAgent(agentOpts);
   }
 }
