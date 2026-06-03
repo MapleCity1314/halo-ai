@@ -1,72 +1,162 @@
 /* ==========================================================================
    Halo AI SDK — Design Tokens
-   Namespaced --halo-* to avoid collision with VitePress --vp-*
+   Namespaced --ds-* to avoid collision with VitePress --vp-*
    ========================================================================== */
 
 :root {
-  /* Brand */
-  --halo-primary: #6366f1;
-  --halo-primary-light: #818cf8;
-  --halo-primary-dark: #4f46e5;
+  /* ---- Brand & Accent ---- */
+  --ds-primary: #cc785c;
+  --ds-primary-active: #a9583e;
+  --ds-primary-disabled: #e6dfd8;
+  --ds-accent-teal: #5db8a6;
+  --ds-accent-amber: #e8a55a;
 
-  /* Surface */
-  --halo-canvas: #faf9f5;
-  --halo-surface-soft: #f5f0e8;
-  --halo-surface-card: #efe9de;
-  --halo-surface-cream-strong: #e8e0d2;
-  --halo-surface-dark: #181715;
-  --halo-surface-dark-elevated: #252320;
-  --halo-surface-dark-soft: #1f1e1b;
+  /* ---- Surface ---- */
+  --ds-canvas: #faf9f5;
+  --ds-surface-soft: #f5f0e8;
+  --ds-surface-card: #efe9de;
+  --ds-surface-cream-strong: #e8e0d2;
+  --ds-surface-dark: #181715;
+  --ds-surface-dark-elevated: #252320;
+  --ds-surface-dark-soft: #1f1e1b;
 
-  /* Hairline */
-  --halo-hairline: #e6dfd8;
-  --halo-hairline-soft: #ebe6df;
+  /* ---- Hairline ---- */
+  --ds-hairline: #e6dfd8;
+  --ds-hairline-soft: #ebe6df;
 
-  /* Text */
-  --halo-ink: #141413;
-  --halo-body-strong: #252523;
-  --halo-body: #3d3d3a;
-  --halo-muted: #6c6a64;
-  --halo-muted-soft: #8e8b82;
-  --halo-on-primary: #ffffff;
-  --halo-on-dark: #faf9f5;
-  --halo-on-dark-soft: #a09d96;
+  /* ---- Text ---- */
+  --ds-ink: #141413;
+  --ds-body-strong: #252523;
+  --ds-body: #3d3d3a;
+  --ds-muted: #6c6a64;
+  --ds-muted-soft: #8e8b82;
+  --ds-on-primary: #ffffff;
+  --ds-on-dark: #faf9f5;
+  --ds-on-dark-soft: #a09d96;
 
-  /* Semantic */
-  --halo-success: #5db872;
-  --halo-warning: #d4a017;
-  --halo-error: #c64545;
+  /* ---- Semantic ---- */
+  --ds-success: #5db872;
+  --ds-warning: #d4a017;
+  --ds-error: #c64545;
 
-  /* Typography */
-  --halo-font-display: 'Cormorant Garamond', 'EB Garamond', 'Noto Serif SC', Garamond, serif;
-  --halo-font-sans: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
-  --halo-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* ---- Typography: Font Stacks ---- */
+  --ds-font-display: 'Copernicus', 'Tiempos Headline', 'Cormorant Garamond', 'EB Garamond', Garamond, 'Times New Roman', serif;
+  --ds-font-sans: 'StyreneB', 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
 
-  /* Rounded */
-  --halo-rounded-md: 8px;
-  --halo-rounded-lg: 12px;
-  --halo-rounded-xl: 16px;
-  --halo-rounded-pill: 9999px;
+  /* ---- Typography: Display Scale ---- */
+  --ds-display-xl-size: 64px;
+  --ds-display-xl-weight: 400;
+  --ds-display-xl-lineheight: 1.05;
+  --ds-display-xl-spacing: -1.5px;
 
-  /* Spacing */
-  --halo-space-xs: 8px;
-  --halo-space-sm: 12px;
-  --halo-space-md: 16px;
-  --halo-space-lg: 24px;
-  --halo-space-xl: 32px;
-  --halo-space-xxl: 48px;
-  --halo-space-section: 96px;
+  --ds-display-lg-size: 48px;
+  --ds-display-lg-weight: 400;
+  --ds-display-lg-lineheight: 1.1;
+  --ds-display-lg-spacing: -1px;
+
+  --ds-display-md-size: 36px;
+  --ds-display-md-weight: 400;
+  --ds-display-md-lineheight: 1.15;
+  --ds-display-md-spacing: -0.5px;
+
+  --ds-display-sm-size: 28px;
+  --ds-display-sm-weight: 400;
+  --ds-display-sm-lineheight: 1.2;
+  --ds-display-sm-spacing: -0.3px;
+
+  /* ---- Typography: Title Scale ---- */
+  --ds-title-lg-size: 22px;
+  --ds-title-lg-weight: 500;
+  --ds-title-lg-lineheight: 1.3;
+  --ds-title-lg-spacing: 0;
+
+  --ds-title-md-size: 18px;
+  --ds-title-md-weight: 500;
+  --ds-title-md-lineheight: 1.4;
+  --ds-title-md-spacing: 0;
+
+  --ds-title-sm-size: 16px;
+  --ds-title-sm-weight: 500;
+  --ds-title-sm-lineheight: 1.4;
+  --ds-title-sm-spacing: 0;
+
+  /* ---- Typography: Body Scale ---- */
+  --ds-body-md-size: 16px;
+  --ds-body-md-weight: 400;
+  --ds-body-md-lineheight: 1.55;
+  --ds-body-md-spacing: 0;
+
+  --ds-body-sm-size: 14px;
+  --ds-body-sm-weight: 400;
+  --ds-body-sm-lineheight: 1.55;
+  --ds-body-sm-spacing: 0;
+
+  /* ---- Typography: Caption / Label Scale ---- */
+  --ds-caption-size: 13px;
+  --ds-caption-weight: 500;
+  --ds-caption-lineheight: 1.4;
+  --ds-caption-spacing: 0;
+
+  --ds-caption-uppercase-size: 12px;
+  --ds-caption-uppercase-weight: 500;
+  --ds-caption-uppercase-lineheight: 1.4;
+  --ds-caption-uppercase-spacing: 1.5px;
+
+  /* ---- Typography: Code ---- */
+  --ds-code-size: 14px;
+  --ds-code-weight: 400;
+  --ds-code-lineheight: 1.6;
+  --ds-code-spacing: 0;
+
+  /* ---- Typography: UI ---- */
+  --ds-button-size: 14px;
+  --ds-button-weight: 500;
+  --ds-button-lineheight: 1;
+
+  --ds-nav-link-size: 14px;
+  --ds-nav-link-weight: 500;
+  --ds-nav-link-lineheight: 1.4;
+
+  /* ---- Rounded ---- */
+  --ds-rounded-xs: 4px;
+  --ds-rounded-sm: 6px;
+  --ds-rounded-md: 8px;
+  --ds-rounded-lg: 12px;
+  --ds-rounded-xl: 16px;
+  --ds-rounded-pill: 9999px;
+  --ds-rounded-full: 9999px;
+
+  /* ---- Spacing ---- */
+  --ds-space-xxs: 4px;
+  --ds-space-xs: 8px;
+  --ds-space-sm: 12px;
+  --ds-space-md: 16px;
+  --ds-space-lg: 24px;
+  --ds-space-xl: 32px;
+  --ds-space-xxl: 48px;
+  --ds-space-section: 96px;
 }
 
+/* ---- Dark Mode Tokens Override ---- */
 .dark {
-  --halo-canvas: #181715;
-  --halo-surface-soft: #1f1e1b;
-  --halo-surface-card: #252320;
-  --halo-hairline: #252320;
-  --halo-hairline-soft: #1f1e1b;
-  --halo-ink: #faf9f5;
-  --halo-body-strong: #faf9f5;
-  --halo-body: #a09d96;
-  --halo-muted: #8e8b82;
-  --halo-muted-soft: #6c6a64;
+  /* ---- Surface ---- */
+  --ds-canvas: #181715;                /* Surface Dark */
+  --ds-surface-soft: #1f1e1b;          /* Surface Dark Soft */
+  --ds-surface-card: #252320;          /* Surface Dark Elevated */
+  --ds-surface-cream-strong: #2d2b27;  /* Emphasized Dark */
+
+  /* ---- Hairline ---- */
+  --ds-hairline: #252320;              /* Hairlines blend in dark mode */
+  --ds-hairline-soft: #1f1e1b;
+
+  /* ---- Text ---- */
+  --ds-ink: #faf9f5;                   /* On Dark (Tinted Cream) */
+  --ds-body-strong: #faf9f5;
+  --ds-body: #a09d96;                  /* On Dark Soft */
+  --ds-muted: #8e8b82;
+  --ds-muted-soft: #6c6a64;
+
+  /* ---- Primary (remains Coral but slightly adjusted if desired, keeping consistent with DESIGN.md) ---- */
+  --ds-primary-disabled: #2d2b27;
 }

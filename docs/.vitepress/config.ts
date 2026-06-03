@@ -143,27 +143,8 @@ export default defineConfig({
 
   locales: {
     root: {
-      label: "English",
-      lang: "en-US",
-      dir: "en",
-      title: "Halo AI SDK",
-      description: "Cache-First Agent Framework — Build AI agents with automatic prefix caching.",
-      themeConfig: {
-        nav: [
-          { text: "Guide", link: "/en/introduction/overview" },
-          { text: "API", link: "/en/api-reference/halo" },
-          { text: "Examples", link: "/en/examples/next-halo" },
-        ],
-        sidebar: { ...sidebarEn },
-        socialLinks: [{ icon: "github", link: "https://github.com" }],
-        footer: { message: "Released under the MIT License." },
-        search: { provider: "local" },
-      },
-    },
-    zh: {
       label: "简体中文",
       lang: "zh-CN",
-      dir: "zh",
       title: "Halo AI SDK",
       description: "Cache-First 智能体框架 — 自动前缀缓存，多模型支持",
       themeConfig: {
@@ -175,6 +156,23 @@ export default defineConfig({
         sidebar: { ...sidebarZh },
         socialLinks: [{ icon: "github", link: "https://github.com" }],
         footer: { message: "基于 MIT 许可证发布" },
+        search: { provider: "local" },
+      },
+    },
+    en: {
+      label: "English",
+      lang: "en-US",
+      title: "Halo AI SDK",
+      description: "Cache-First Agent Framework — Build AI agents with automatic prefix caching.",
+      themeConfig: {
+        nav: [
+          { text: "Guide", link: "/en/introduction/overview" },
+          { text: "API", link: "/en/api-reference/halo" },
+          { text: "Examples", link: "/en/examples/next-halo" },
+        ],
+        sidebar: { ...sidebarEn },
+        socialLinks: [{ icon: "github", link: "https://github.com" }],
+        footer: { message: "Released under the MIT License." },
         search: { provider: "local" },
       },
     },
