@@ -154,6 +154,52 @@ export class HaloAgentImpl {
     return this._callModel();
   }
 
+  /**
+   * Stream-compatible entry for AI SDK (useChat) integration.
+   *
+   * Accepts UIMessages from `useChat()`, converts them to ChatMessages,
+   * hydrates prior history, then streams the last user message.
+   *
+   * When tools with `execute` are present, uses `run()` for auto-execution.
+   * Otherwise uses `stream()` for plain text streaming.
+   *
+   * Cache-first: only `_log` is modified via hydrate(), `_prefix` is untouched.
+   */
+  async *sdkStream(
+    messages: { role: string; content: string }[],
+  ): AsyncGenerator<TurnChunk> {
+    // Convert UIMessages → ChatMessages (system role is already in prefix).
+    const chatMessages: ChatMessage[] = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        role: m.role as ChatMessage["role"],
+        content: m.content,
+      }));
+
+    if (chatMessages.length === 0) {
+      yield { type: "text-delta", delta: "" };
+      yield { type: "done", usage: { promptTokens: 0, completionTokens: 0 } };
+      return;
+    }
+
+    // Last message is the current user input; everything before it is history.
+    const lastMsg = chatMessages.pop()!;
+    if (chatMessages.length > 0) {
+      this.hydrate(chatMessages);
+    }
+
+    // If the agent has tools with auto-execute, use run() for full tool loop.
+    if (this._toolExecutors.size > 0) {
+      const result = await this.run(lastMsg.content);
+      yield { type: "text-delta", delta: result.content };
+      yield { type: "done", usage: result.usage };
+      return;
+    }
+
+    // Plain text: stream normally.
+    yield* this.stream(lastMsg.content);
+  }
+
   // ── Prefix ──
 
   addTool(spec: ToolSpec): void;
@@ -349,7 +395,7 @@ function definitionToSpec(name: string, def: ToolDefinition): ToolSpec {
   };
 }
 
-function normalizeTools(tools: ToolSpec[] | Record<string, ToolDefinition> | undefined): {
+function normalizeTools(tools: ToolSpec[] | Record<string, ToolDefinition<any>> | undefined): {
   toolSpecs: ToolSpec[];
   executors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
 } {

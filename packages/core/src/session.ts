@@ -77,7 +77,8 @@ export interface HaloAgentOptions {
    * includes `execute`, the `run()` method calls it automatically —
    * no `onToolCall` callback needed.
    */
-  tools?: ToolSpec[] | Record<string, ToolDefinition>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tools?: ToolSpec[] | Record<string, ToolDefinition<any>>;
   fewShots?: ChatMessage[];
 
   context?: ContextStrategy;

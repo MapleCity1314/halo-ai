@@ -62,6 +62,19 @@ export class HaloAgent {
     return this._impl.submitToolResult(result);
   }
 
+  /**
+   * Stream-compatible entry for AI SDK (useChat) integration.
+   *
+   * Accepts UIMessages from `useChat()`, hydrates prior history,
+   * and streams the response. When tools with `execute` are present,
+   * the full tool-call loop runs automatically via `run()`.
+   */
+  async *sdkStream(
+    messages: { role: string; content: string }[],
+  ): AsyncGenerator<TurnChunk> {
+    yield* this._impl.sdkStream(messages);
+  }
+
   // ── Prefix ──
 
   /** Add a tool to the agent. Triggers cache miss for the NEXT turn only. */

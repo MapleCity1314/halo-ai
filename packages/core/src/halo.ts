@@ -13,7 +13,7 @@ export class Halo {
 
   agent(opts: {
     system: string;
-    tools?: ToolSpec[] | Record<string, ToolDefinition>;
+    tools?: ToolSpec[] | Record<string, ToolDefinition<any>>;
     fewShots?: ChatMessage[];
 
     context?: ContextStrategy;
