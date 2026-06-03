@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*",
+    "docs"
   ],
   "scripts": {
     "build": "turbo build",
@@ -17,7 +19,11 @@
     "clean": "turbo clean",
     "changeset": "changeset",
     "ci:version": "changeset version",
-    "ci:release": "turbo build && changeset publish"
+    "ci:release": "turbo build && changeset publish",
+    "docs:dev": "pnpm --filter @halo-ai/docs dev",
+    "docs:build": "pnpm --filter @halo-ai/docs build",
+    "example:dev": "pnpm --filter @example/next-halo dev",
+    "setup": "pnpm install && pnpm build"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

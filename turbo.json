@@ -32,6 +32,13 @@
     },
     "format:check": {
       "cache": false
+    },
+    "docs:build": {
+      "outputs": [".vitepress/dist/**"]
+    },
+    "example:dev": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
