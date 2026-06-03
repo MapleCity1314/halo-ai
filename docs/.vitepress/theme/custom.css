@@ -1,0 +1,197 @@
+/* ==========================================================================
+   Halo AI SDK — VitePress Theme
+   Brand: Indigo + Zinc, dark-first
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --halo-brand: #6366f1;
+  --halo-brand-light: #818cf8;
+  --halo-brand-dark: #4f46e5;
+
+  /* VitePress overrides */
+  --vp-c-brand-1: var(--halo-brand);
+  --vp-c-brand-2: var(--halo-brand-dark);
+  --vp-c-brand-3: var(--halo-brand-light);
+  --vp-c-brand-soft: rgba(99, 102, 241, 0.14);
+
+  --vp-c-bg: #fafafa;
+  --vp-c-bg-alt: #f4f4f5;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #f4f4f5;
+
+  --vp-c-text-1: #18181b;
+  --vp-c-text-2: #3f3f46;
+  --vp-c-text-3: #71717a;
+
+  --vp-c-border: #e4e4e7;
+  --vp-c-divider: #f4f4f5;
+  --vp-c-gutter: #e4e4e7;
+
+  --vp-c-tip-1: var(--halo-brand);
+  --vp-c-tip-2: var(--halo-brand-dark);
+  --vp-c-tip-3: var(--halo-brand-light);
+  --vp-c-tip-soft: rgba(99, 102, 241, 0.14);
+
+  --vp-c-warning-1: #f59e0b;
+  --vp-c-warning-2: #d97706;
+  --vp-c-warning-3: #fbbf24;
+  --vp-c-warning-soft: rgba(245, 158, 11, 0.14);
+
+  --vp-c-danger-1: #ef4444;
+  --vp-c-danger-2: #dc2626;
+  --vp-c-danger-3: #f87171;
+  --vp-c-danger-soft: rgba(239, 68, 68, 0.14);
+
+  --vp-font-family-base: "Inter", "SF Pro Text", system-ui, sans-serif;
+  --vp-font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --vp-code-block-bg: #18181b;
+  --vp-code-line-height: 1.65;
+  --vp-code-font-size: 0.875em;
+
+  --vp-layout-max-width: 1280px;
+  --vp-sidebar-width: 260px;
+}
+
+.dark {
+  --vp-c-bg: #09090b;
+  --vp-c-bg-alt: #18181b;
+  --vp-c-bg-elv: #18181b;
+  --vp-c-bg-soft: #27272a;
+
+  --vp-c-text-1: #fafafa;
+  --vp-c-text-2: #d4d4d8;
+  --vp-c-text-3: #a1a1aa;
+
+  --vp-c-border: #27272a;
+  --vp-c-divider: #27272a;
+  --vp-c-gutter: #3f3f46;
+
+  --vp-c-brand-1: var(--halo-brand-light);
+  --vp-c-brand-2: var(--halo-brand);
+  --vp-c-brand-3: var(--halo-brand-dark);
+}
+
+/* ── Hero overrides ── */
+.VPHero .name {
+  background: linear-gradient(135deg, var(--halo-brand-light), var(--halo-brand));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.VPHero .tagline {
+  color: var(--vp-c-text-2);
+}
+
+/* ── API reference table styles ── */
+.api-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 16px 0;
+}
+.api-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--vp-c-border);
+  background: var(--vp-c-bg-alt);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vp-c-text-2);
+}
+.api-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  vertical-align: top;
+}
+.api-table td:first-child {
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.api-table td:nth-child(2) {
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  color: var(--vp-c-brand-1);
+}
+
+/* ── Code blocks ── */
+.vp-doc div[class*="language-"] {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-border);
+}
+
+/* ── Custom blocks ── */
+.vp-doc .custom-block {
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 14px;
+}
+
+/* ── Feature cards on homepage ── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin: 48px 0;
+}
+@media (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.feature-card {
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.feature-card h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+.feature-card p {
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Getting Started grid ── */
+.gs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+@media (max-width: 640px) {
+  .gs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.gs-card {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 10px;
+  padding: 20px;
+  transition: border-color 0.15s;
+}
+.gs-card:hover {
+  border-color: var(--vp-c-brand-1);
+}
+.gs-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.gs-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+}
+.gs-card a {
+  text-decoration: none;
+  color: inherit;
+}
