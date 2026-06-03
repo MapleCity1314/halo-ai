@@ -14,7 +14,7 @@ import { HaloAgent } from "@halo-ai/core";
 new HaloAgent(opts: HaloAgentOptions)
 ```
 
-See [Halo.agent()](/api-reference/halo#agent-opts) for options.
+See [Halo.agent()](/en/api-reference/halo#agent-opts) for options.
 
 ## Properties
 
@@ -118,7 +118,7 @@ agent.keepAlive(intervalMs?: number): { stop: () => void }
 
 ### `clearLog()`
 
-Reset conversation history. Prefix is **not** affected â€” cache stays warm.
+Reset conversation history. Prefix is **not** affected â€?cache stays warm.
 
 ### `setSystem(system)`
 
@@ -151,3 +151,4 @@ const turn2 = await agent.submitToolResult({
 const agent = halo.agent({ system: "...", tools: { ... } });
 return toDataStream(agent.sdkStream(messages));
 ```
+

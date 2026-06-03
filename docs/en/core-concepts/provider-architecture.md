@@ -19,7 +19,7 @@ interface ModelAdapter {
 
 ## Key Design Decisions
 
-### 1. Split prefix/history â€” not flat messages
+### 1. Split prefix/history â€?not flat messages
 
 Adapters receive prefix and history **separately**. This lets each adapter apply its own caching strategy:
 
@@ -38,7 +38,7 @@ const cacheName = await createCache(prefix);
 const body = { cachedContent: cacheName, contents: history };
 ```
 
-### 2. Capabilities â€” not provider detection
+### 2. Capabilities â€?not provider detection
 
 Instead of `if (provider === "deepseek")`, use capability flags:
 
@@ -66,7 +66,7 @@ Without pricing, savings are `null`.
 
 ## Writing a Custom Adapter
 
-See [Choosing a Provider](/getting-started/choosing-a-provider#creating-custom-adapters) for a complete example (~30 lines).
+See [Choosing a Provider](/en/getting-started/choosing-a-provider#creating-custom-adapters) for a complete example (~30 lines).
 
 The minimal implementation:
 
@@ -99,3 +99,4 @@ class MyAdapter implements ModelAdapter {
   }
 }
 ```
+

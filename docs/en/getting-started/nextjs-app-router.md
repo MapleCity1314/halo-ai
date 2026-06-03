@@ -89,9 +89,10 @@ export function Chat() {
 4. `useChat` automatically parses the SSE stream and updates the UI
 
 ::: tip Cache First
-The system prompt and tool definitions are part of the **stable prefix**. DeepSeek caches them automatically. Only the conversation turns change between requests â€” your prefix tokens are billed at ~74% discount.
+The system prompt and tool definitions are part of the **stable prefix**. DeepSeek caches them automatically. Only the conversation turns change between requests â€?your prefix tokens are billed at ~74% discount.
 :::
 
 ## Full Example
 
-See the [Next.js example](/examples/next-halo) for a complete chat app with Tailwind styling and tool-call visualization.
+See the [Next.js example](/en/examples/next-halo) for a complete chat app with Tailwind styling and tool-call visualization.
+

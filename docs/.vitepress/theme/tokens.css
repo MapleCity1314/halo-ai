@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Halo AI SDK — Design Tokens
+   Namespaced --halo-* to avoid collision with VitePress --vp-*
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --halo-primary: #6366f1;
+  --halo-primary-light: #818cf8;
+  --halo-primary-dark: #4f46e5;
+
+  /* Surface */
+  --halo-canvas: #faf9f5;
+  --halo-surface-soft: #f5f0e8;
+  --halo-surface-card: #efe9de;
+  --halo-surface-cream-strong: #e8e0d2;
+  --halo-surface-dark: #181715;
+  --halo-surface-dark-elevated: #252320;
+  --halo-surface-dark-soft: #1f1e1b;
+
+  /* Hairline */
+  --halo-hairline: #e6dfd8;
+  --halo-hairline-soft: #ebe6df;
+
+  /* Text */
+  --halo-ink: #141413;
+  --halo-body-strong: #252523;
+  --halo-body: #3d3d3a;
+  --halo-muted: #6c6a64;
+  --halo-muted-soft: #8e8b82;
+  --halo-on-primary: #ffffff;
+  --halo-on-dark: #faf9f5;
+  --halo-on-dark-soft: #a09d96;
+
+  /* Semantic */
+  --halo-success: #5db872;
+  --halo-warning: #d4a017;
+  --halo-error: #c64545;
+
+  /* Typography */
+  --halo-font-display: 'Cormorant Garamond', 'EB Garamond', 'Noto Serif SC', Garamond, serif;
+  --halo-font-sans: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
+  --halo-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Rounded */
+  --halo-rounded-md: 8px;
+  --halo-rounded-lg: 12px;
+  --halo-rounded-xl: 16px;
+  --halo-rounded-pill: 9999px;
+
+  /* Spacing */
+  --halo-space-xs: 8px;
+  --halo-space-sm: 12px;
+  --halo-space-md: 16px;
+  --halo-space-lg: 24px;
+  --halo-space-xl: 32px;
+  --halo-space-xxl: 48px;
+  --halo-space-section: 96px;
+}
+
+.dark {
+  --halo-canvas: #181715;
+  --halo-surface-soft: #1f1e1b;
+  --halo-surface-card: #252320;
+  --halo-hairline: #252320;
+  --halo-hairline-soft: #1f1e1b;
+  --halo-ink: #faf9f5;
+  --halo-body-strong: #faf9f5;
+  --halo-body: #a09d96;
+  --halo-muted: #8e8b82;
+  --halo-muted-soft: #6c6a64;
+}
