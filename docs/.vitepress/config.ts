@@ -139,6 +139,7 @@ const sidebarZh = {
 export default defineConfig({
   title: "Halo AI SDK",
   description: "Cache-First Agent Framework",
+  base: "/halo-ai/",
   ignoreDeadLinks: true,
 
   locales: {
