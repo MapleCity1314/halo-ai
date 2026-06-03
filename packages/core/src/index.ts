@@ -4,7 +4,6 @@ export type {
   ContextStrategy,
   RepairStrategy,
   RepairResult,
-  ConfirmationStrategy,
 } from "./strategies.js";
 export type {
   TurnResult,
@@ -22,4 +21,4 @@ export { MessageLog } from "./log.js";
 export { HaloAgent } from "./halo-agent.js";
 export { Halo } from "./halo.js";
 export { tool } from "./tool.js";
-export { HaloAgentImpl } from "./session-impl.js";
+export type { HaloAgentImpl } from "./session-impl.js";

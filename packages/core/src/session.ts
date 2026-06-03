@@ -1,5 +1,5 @@
 import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
-import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
+import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ModelAdapter } from "./model-adapter.js";
 
 // ── Turn result ──
@@ -83,7 +83,6 @@ export interface HaloAgentOptions {
 
   context?: ContextStrategy;
   repair?: RepairStrategy;
-  confirmation?: ConfirmationStrategy;
 
   on?: (event: AgentEvent, payload: unknown) => void;
 }

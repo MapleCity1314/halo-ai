@@ -3,6 +3,9 @@ import type { ToolDefinition } from "./types.js";
 /**
  * Create a tool definition with an optional built-in execute function.
  *
+ * This is a **type-level identity** — at runtime it returns the input unchanged.
+ * It exists purely for TypeScript generic inference on `TArgs`.
+ *
  * @example
  * ```ts
  * const weatherTool = tool({

@@ -22,7 +22,6 @@ export class BasicRepair implements RepairStrategy {
     return {
       toolCalls: repaired,
       fixed,
-      scavenged: 0,
       suppressed: 0,
       notes: fixed > 0 ? [`fixed ${fixed} truncated JSON argument(s)`] : [],
     };

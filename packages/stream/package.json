@@ -8,8 +8,7 @@
     "directory": "packages/stream"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.js",

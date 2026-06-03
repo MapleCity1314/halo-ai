@@ -54,20 +54,19 @@ export class DeepSeekAdapter implements ModelAdapter {
       throw new Error(`DeepSeek ${resp.status}: ${await resp.text()}`);
     }
 
-    const data = (await resp.json()) as Record<string, unknown>;
-    const choice = (data.choices as Array<Record<string, unknown>>)?.[0]?.message as
-      | Record<string, unknown>
-      | undefined;
-    const usageRaw = data.usage as Record<string, number> | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = await resp.json();
+    const choice = data.choices?.[0]?.message;
+    const usageRaw = data.usage;
 
-    const content = (choice?.content as string) ?? "";
-    const toolCalls = (choice?.tool_calls as ToolCall[]) ?? [];
+    const content: string = choice?.content ?? "";
+    const toolCalls: ToolCall[] = choice?.tool_calls ?? [];
 
-    const promptTokens = usageRaw?.prompt_tokens ?? 0;
-    const completionTokens = usageRaw?.completion_tokens ?? 0;
-    const cacheHit = (usageRaw?.prompt_cache_hit_tokens as number) ?? 0;
-    const cacheMiss =
-      (usageRaw?.prompt_cache_miss_tokens as number) ?? Math.max(0, promptTokens - cacheHit);
+    const promptTokens: number = usageRaw?.prompt_tokens ?? 0;
+    const completionTokens: number = usageRaw?.completion_tokens ?? 0;
+    const cacheHit: number = usageRaw?.prompt_cache_hit_tokens ?? 0;
+    const cacheMiss: number =
+      usageRaw?.prompt_cache_miss_tokens ?? Math.max(0, promptTokens - cacheHit);
 
     const usage: Usage = {
       promptTokens,
@@ -131,29 +130,25 @@ export class DeepSeekAdapter implements ModelAdapter {
             return;
           }
           try {
-            const json = JSON.parse(data);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const json: any = JSON.parse(data);
             const delta = json.choices?.[0]?.delta;
             if (delta?.content) {
-              yield { type: "text-delta", delta: delta.content as string };
+              yield { type: "text-delta", delta: String(delta.content) };
             }
-            if (delta?.tool_calls) {
-              for (
-                let i = 0;
-                i < (delta.tool_calls as Array<Record<string, unknown>>).length;
-                i++
-              ) {
-                const tc = (delta.tool_calls as Array<Record<string, unknown>>)[i]!;
+            const toolCalls: any[] | undefined = delta?.tool_calls;
+            if (toolCalls) {
+              for (let i = 0; i < toolCalls.length; i++) {
+                const tc = toolCalls[i]!;
                 yield {
                   type: "tool-call-delta",
-                  index: (tc.index as number) ?? i,
-                  name: tc.function ? (tc.function as Record<string, string>).name : undefined,
-                  argumentsDelta: tc.function
-                    ? (tc.function as Record<string, string>).arguments
-                    : undefined,
+                  index: typeof tc.index === "number" ? tc.index : i,
+                  name: tc.function ? String(tc.function.name ?? "") : undefined,
+                  argumentsDelta: tc.function ? String(tc.function.arguments ?? "") : undefined,
                 };
               }
             }
-            const usageRaw = json.usage as Record<string, number> | undefined;
+            const usageRaw = json.usage;
             if (usageRaw) {
               const promptTokens = usageRaw.prompt_tokens ?? 0;
               const completionTokens = usageRaw.completion_tokens ?? 0;

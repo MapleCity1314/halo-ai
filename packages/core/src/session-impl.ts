@@ -1,5 +1,6 @@
 import { StablePrefix } from "./prefix.js";
 import { MessageLog } from "./log.js";
+import { normalizeTools, definitionToSpec } from "./tool-utils.js";
 import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec } from "./types.js";
 import type {
   TurnResult,
@@ -10,7 +11,7 @@ import type {
   HaloAgentOptions,
 } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
-import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
+import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 
 /** Internal implementation. Exported for testing only. */
 export class HaloAgentImpl {
@@ -19,8 +20,7 @@ export class HaloAgentImpl {
   private _log: MessageLog;
   private _context: ContextStrategy | undefined;
   private _repair: RepairStrategy | undefined;
-  private _confirmation: ConfirmationStrategy | undefined;
-  private _listeners: Map<AgentEvent, Set<(payload: unknown) => void>>;
+  private _listeners: Map<AgentEvent, Set<(event: AgentEvent, payload: unknown) => void>>;
   private _stats: SessionStats;
   private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   private _toolExecutors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
@@ -40,14 +40,13 @@ export class HaloAgentImpl {
     this._log = new MessageLog();
     this._context = opts.context;
     this._repair = opts.repair;
-    this._confirmation = opts.confirmation;
     this._listeners = new Map();
 
     // Register external listener if provided.
     if (opts.on) {
       for (const ev of ["cache:miss", "context:truncated", "repair:applied"] as AgentEvent[]) {
         this._listeners.set(ev, new Set());
-        this._listeners.get(ev)!.add(opts.on as (p: unknown) => void);
+        this._listeners.get(ev)!.add(opts.on);
       }
     }
 
@@ -359,7 +358,7 @@ export class HaloAgentImpl {
     if (!handlers) return;
     for (const fn of handlers) {
       try {
-        fn(payload);
+        fn(event, payload);
       } catch {
         /* silent */
       }
@@ -380,45 +379,6 @@ export class HaloAgentImpl {
       (this._adapter.pricing.inputPricePer1k - this._adapter.pricing.cachedInputPricePer1k)
     );
   }
-}
-
-// ── Tool normalization ──
-
-function definitionToSpec(name: string, def: ToolDefinition): ToolSpec {
-  return {
-    type: "function",
-    function: {
-      name,
-      description: def.description,
-      parameters: def.parameters,
-    },
-  };
-}
-
-function normalizeTools(tools: ToolSpec[] | Record<string, ToolDefinition<any>> | undefined): {
-  toolSpecs: ToolSpec[];
-  executors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
-} {
-  const executors = new Map<string, (args: Record<string, unknown>) => string | Promise<string>>();
-
-  if (!tools) return { toolSpecs: [], executors };
-
-  if (Array.isArray(tools)) {
-    return { toolSpecs: tools, executors };
-  }
-
-  const specs: ToolSpec[] = [];
-  for (const [name, def] of Object.entries(tools)) {
-    specs.push(definitionToSpec(name, def));
-    if (def.execute) {
-      executors.set(
-        name,
-        def.execute as (args: Record<string, unknown>) => string | Promise<string>,
-      );
-    }
-  }
-
-  return { toolSpecs: specs, executors };
 }
 
 

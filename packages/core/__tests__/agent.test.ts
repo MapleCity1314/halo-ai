@@ -22,7 +22,7 @@ function createAgent(adapter: MockAdapter, opts?: { tools?: ToolCall[] }) {
 }
 
 describe("HaloAgentImpl", () => {
-  // ── send() ──
+  // ┢�┢� send() ┢�┢�
 
   it("send returns content and updates stats", async () => {
     const adapter = createAdapter();
@@ -76,15 +76,14 @@ describe("HaloAgentImpl", () => {
     const agent = new HaloAgentImpl({
       adapter,
       system: "You are helpful.",
-      // on callback receives payload (not event type)
-      on: (payload) => events.push(payload),
+      on: (event, payload) => events.push({ event, payload }),
     });
 
     await agent.send("a");
     await agent.send("b");
 
     expect(events.length).toBeGreaterThanOrEqual(1);
-    expect(events[0]).toHaveProperty("type", "unknown");
+    expect(events[0]).toHaveProperty("event", "cache:miss");
   });
 
   it("send accumulates cache stats", async () => {
@@ -126,7 +125,7 @@ describe("HaloAgentImpl", () => {
     await agent.send("next");
   });
 
-  // ── run() with tool calls ──
+  // ┢�┢� run() with tool calls ┢�┢�
 
   it("run loops on tool calls", async () => {
     const adapter = createAdapter();
@@ -188,7 +187,7 @@ describe("HaloAgentImpl", () => {
     expect(agent.stats.turns).toBe(1);
   });
 
-  // ── submitToolResult ──
+  // ┢�┢� submitToolResult ┢�┢�
 
   it("submitToolResult feeds tool result and calls model again", async () => {
     const adapter = createAdapter();
@@ -227,7 +226,7 @@ describe("HaloAgentImpl", () => {
     expect(result.content).toBe("Handled error");
   });
 
-  // ── clearLog ──
+  // ┢�┢� clearLog ┢�┢�
 
   it("clearLog resets history but preserves prefix", async () => {
     const adapter = createAdapter();
@@ -252,7 +251,7 @@ describe("HaloAgentImpl", () => {
     expect(result.content).toBe("fresh");
   });
 
-  // ── Repair strategy ──
+  // ┢�┢� Repair strategy ┢�┢�
 
   it("applies repair strategy when tool calls present", async () => {
     const adapter = createAdapter();
@@ -270,13 +269,11 @@ describe("HaloAgentImpl", () => {
         repair: (calls, _raw) => ({
           toolCalls: calls,
           fixed: 0,
-          scavenged: 0,
           suppressed: 1,
           notes: ["suppressed test"],
         }),
       },
-      // on callback receives payload only (not event type)
-      on: (payload) => repairEvents.push(payload),
+      on: (event, payload) => repairEvents.push({ event, payload }),
     });
 
     const result = await agent.send("test");
@@ -284,7 +281,7 @@ describe("HaloAgentImpl", () => {
     expect(repairEvents.length).toBe(1);
   });
 
-  // ── Context truncation ──
+  // ┢�┢� Context truncation ┢�┢�
 
   it("context strategy triggers context:truncated event", async () => {
     const adapter = createAdapter();
@@ -311,8 +308,7 @@ describe("HaloAgentImpl", () => {
           };
         },
       },
-      // on callback receives payload only (not event type)
-      on: (payload) => truncateEvents.push(payload),
+      on: (event, payload) => truncateEvents.push({ event, payload }),
     });
 
     await agent.send("hi");

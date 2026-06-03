@@ -27,7 +27,6 @@ export interface ContextStrategy {
 export interface RepairResult {
   toolCalls: ToolCall[];
   fixed: number;
-  scavenged: number;
   suppressed: number;
   notes: string[];
 }
@@ -36,8 +35,4 @@ export interface RepairStrategy {
   repair(toolCalls: ToolCall[], rawContent: string): RepairResult;
 }
 
-// ── Confirmation strategy ──
 
-export interface ConfirmationStrategy {
-  approve(name: string, args: Record<string, unknown>): Promise<boolean>;
-}

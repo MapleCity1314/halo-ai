@@ -1,7 +1,7 @@
 import { HaloAgent } from "./halo-agent.js";
 import type { HaloAgentOptions, AgentEvent } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
-import type { ContextStrategy, RepairStrategy, ConfirmationStrategy } from "./strategies.js";
+import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";
 
 export class Halo {
@@ -18,7 +18,6 @@ export class Halo {
 
     context?: ContextStrategy;
     repair?: RepairStrategy;
-    confirmation?: ConfirmationStrategy;
 
     on?: (event: AgentEvent, payload: unknown) => void;
   }): HaloAgent {
@@ -29,7 +28,6 @@ export class Halo {
       fewShots: opts.fewShots,
       context: opts.context,
       repair: opts.repair,
-      confirmation: opts.confirmation,
       on: opts.on,
     };
 

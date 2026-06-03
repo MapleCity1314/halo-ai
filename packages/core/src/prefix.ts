@@ -27,11 +27,9 @@ export class StablePrefix {
     return [{ role: "system", content: this._system }, ...this._fewShots.map((m) => ({ ...m }))];
   }
 
-  /** Frozen shallow copy of the tool list. */
+  /** Shallow copy of the tool list. */
   tools(): ToolSpec[] {
-    return Object.freeze(
-      this._toolSpecs.map((t) => Object.freeze({ ...t, function: { ...t.function } })),
-    ) as unknown as ToolSpec[];
+    return this._toolSpecs.map((t) => ({ ...t, function: { ...t.function } }));
   }
 
   /** SHA-256[:16] fingerprint of the entire prefix. */
