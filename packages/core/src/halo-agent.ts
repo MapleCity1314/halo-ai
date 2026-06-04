@@ -5,6 +5,8 @@ import type {
   ToolResult,
   SessionStats,
   HaloAgentOptions,
+  StreamTextOptions,
+  StreamTextResult,
 } from "./session.js";
 import type { ModelCallOptions } from "./model-adapter.js";
 import { HaloAgentImpl } from "./session-impl.js";
@@ -56,6 +58,19 @@ export class HaloAgent {
   /** Stream a message. */
   async *stream(input: string, options?: ModelCallOptions): AsyncGenerator<TurnChunk> {
     yield* this._impl.stream(input, options);
+  }
+
+  /**
+   * Streaming entry with full tool-call loop and named callbacks.
+   *
+   * Accepts a string (plain input) or `ChatMessage[]` (AI SDK useChat integration).
+   * Returns a `StreamTextResult` with multiple consumption paths.
+   */
+  streamText(
+    input: string | ChatMessage[],
+    opts?: StreamTextOptions,
+  ): StreamTextResult {
+    return this._impl.streamText(input, opts);
   }
 
   /** Submit a tool execution result. Triggers another model call. */

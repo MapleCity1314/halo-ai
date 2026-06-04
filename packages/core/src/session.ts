@@ -109,3 +109,53 @@ export interface HaloAgentOptions {
 
   on?: (event: AgentEvent, payload: unknown) => void;
 }
+
+// ── StreamText ──
+
+/** Named callbacks for streamText(). */
+export interface StreamTextCallbacks {
+  onChunk?: (event: { chunk: TurnChunk }) => void;
+  onStepFinish?: (event: {
+    text: string;
+    toolCalls: ToolCall[];
+    usage: Usage;
+    step: number;
+  }) => void;
+  onFinish?: (event: {
+    text: string;
+    usage: Usage;
+    steps: number;
+    toolCalls: ToolCall[];
+  }) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface StreamTextOptions extends ModelCallOptions, StreamTextCallbacks {
+  maxSteps?: number;
+  onToolCall?: (call: ToolCall) => Promise<ToolResult>;
+}
+
+export interface StreamTextResult {
+  toDataStream(opts?: { headers?: Record<string, string> }): Response;
+  toReadableStream(): ReadableStream<Uint8Array>;
+  toAsyncIterable(): AsyncIterable<TurnChunk>;
+  text: Promise<string>;
+  usage: Promise<Usage>;
+
+  on(
+    event: "text-delta",
+    fn: (payload: TurnChunk & { type: "text-delta" }) => void,
+  ): () => void;
+  on(
+    event: "tool-call-delta",
+    fn: (payload: TurnChunk & { type: "tool-call-delta" }) => void,
+  ): () => void;
+  on(
+    event: "tool-call-ready",
+    fn: (payload: TurnChunk & { type: "tool-call-ready" }) => void,
+  ): () => void;
+  on(
+    event: "done",
+    fn: (payload: TurnChunk & { type: "done" }) => void,
+  ): () => void;
+}

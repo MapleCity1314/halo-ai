@@ -1,5 +1,11 @@
 import { HaloAgent } from "./halo-agent.js";
-import type { HaloAgentOptions, AgentEvent, ModelConfig } from "./session.js";
+import type {
+  HaloAgentOptions,
+  AgentEvent,
+  ModelConfig,
+  StreamTextOptions,
+  StreamTextResult,
+} from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";
@@ -40,5 +46,26 @@ export class Halo {
     };
 
     return new HaloAgent(agentOpts);
+  }
+
+  /**
+   * Convenience: create an agent and stream the response in one call.
+   *
+   * `userMessages` is the conversation from the client (AI SDK useChat format).
+   * The last message is the current input; prior messages hydrate the agent's history.
+   */
+  streamAgent(opts: {
+    messages?: ChatMessage[];
+    system?: string;
+    tools?: ToolSpec[] | Record<string, ToolDefinition<any>>;
+    fewShots?: ChatMessage[];
+    model?: ModelConfig;
+    userMessages: ChatMessage[];
+    skills?: unknown[];
+  } & StreamTextOptions): StreamTextResult {
+    const { userMessages, skills: _skills, ...agentOpts } = opts;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const agent = new HaloAgent(agentOpts as any);
+    return agent.streamText(userMessages, opts);
   }
 }

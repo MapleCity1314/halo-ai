@@ -1,7 +1,7 @@
 import { StablePrefix } from "./prefix.js";
 import { MessageLog } from "./log.js";
 import { normalizeTools, definitionToSpec } from "./tool-utils.js";
-import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec } from "./types.js";
+import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
 import type {
   TurnResult,
   TurnChunk,
@@ -10,6 +10,8 @@ import type {
   SessionStats,
   HaloAgentOptions,
   ModelConfig,
+  StreamTextOptions,
+  StreamTextResult,
 } from "./session.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
@@ -277,6 +279,156 @@ export class HaloAgentImpl {
     return { stop: () => this._stopKeepAlive() };
   }
 
+  // ── StreamText ──
+
+  /**
+   * Streaming entry with full tool-call loop.
+   * Accepts both a plain string and a ChatMessage[] (for AI SDK useChat integration).
+   */
+  streamText(
+    input: string | ChatMessage[],
+    opts?: StreamTextOptions,
+  ): StreamTextResult {
+    return new StreamTextResultImpl(this._streamWithToolLoop(input, opts));
+  }
+
+  private async *_streamWithToolLoop(
+    input: string | ChatMessage[],
+    opts?: StreamTextOptions,
+  ): AsyncGenerator<TurnChunk> {
+    const {
+      maxSteps,
+      onToolCall,
+      onChunk,
+      onStepFinish,
+      onFinish,
+      onError,
+      ...callOptions
+    } = opts ?? {};
+
+    // Normalize input.
+    if (typeof input === "string") {
+      this._log.append({ role: "user", content: input });
+    } else {
+      const chatMessages: ChatMessage[] = input
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role as ChatMessage["role"], content: m.content }));
+
+      if (chatMessages.length === 0) {
+        yield { type: "text-delta", delta: "" };
+        yield { type: "done", usage: { promptTokens: 0, completionTokens: 0 } };
+        return;
+      }
+
+      const lastMsg = chatMessages.pop()!;
+      if (chatMessages.length > 0) this.hydrate(chatMessages);
+      this._log.append(lastMsg);
+    }
+
+    const merged: ModelCallOptions = { ...this._modelDefaults, ...callOptions };
+    const limit = maxSteps ?? 10;
+
+    let stepCount = 0;
+    const totalUsage: Usage = { promptTokens: 0, completionTokens: 0 };
+    const allToolCalls: ToolCall[] = [];
+    let fullText = "";
+
+    try {
+      let hasToolCalls = true;
+
+      while (hasToolCalls && stepCount <= limit) {
+        hasToolCalls = false;
+        let stepText = "";
+        const stepToolCalls: ToolCall[] = [];
+        let stepUsage: Usage | null = null;
+
+        const prefix = this._prefix.toMessages();
+        const history = this._resolveHistory();
+        const tools = this._prefix.tools();
+
+        for await (const chunk of this._adapter.stream(
+          prefix,
+          history,
+          tools.length > 0 ? tools : undefined,
+          undefined,
+          merged,
+        )) {
+          if (chunk.type === "text-delta") {
+            stepText += chunk.delta;
+            fullText += chunk.delta;
+          } else if (chunk.type === "tool-call-ready") {
+            stepToolCalls.push(chunk.call);
+            allToolCalls.push(chunk.call);
+            hasToolCalls = true;
+          } else if (chunk.type === "done") {
+            stepUsage = chunk.usage;
+          }
+
+          onChunk?.({ chunk });
+          yield chunk;
+        }
+
+        // Fallback: if adapter didn't send "done", estimate usage.
+        const usage = stepUsage ?? { promptTokens: 0, completionTokens: 0 };
+        totalUsage.promptTokens += usage.promptTokens;
+        totalUsage.completionTokens += usage.completionTokens;
+
+        if (hasToolCalls && stepCount < limit) {
+          stepCount++;
+
+          // Append assistant message BEFORE tool results (correct protocol order).
+          const assistantMsg: ChatMessage = { role: "assistant", content: stepText };
+          if (stepToolCalls.length > 0) assistantMsg.tool_calls = stepToolCalls;
+          this._log.append(assistantMsg);
+
+          for (const call of stepToolCalls) {
+            const executor = this._toolExecutors.get(call.function.name);
+            if (executor) {
+              let parsed: Record<string, unknown>;
+              try {
+                parsed = JSON.parse(call.function.arguments);
+              } catch {
+                parsed = {};
+              }
+              const output = await executor(parsed);
+              this._log.append({ role: "tool", tool_call_id: call.id, content: output });
+            } else if (onToolCall) {
+              const r = await onToolCall(call);
+              this._log.append({
+                role: "tool",
+                tool_call_id: call.id,
+                content: r.isError ? `ERROR: ${r.output}` : r.output,
+              });
+            } else {
+              hasToolCalls = false;
+            }
+          }
+
+          onStepFinish?.({ text: stepText, toolCalls: stepToolCalls, usage, step: stepCount });
+        } else {
+          // Final step (no more tool calls or limit reached).
+          stepCount++;
+          const assistantMsg: ChatMessage = { role: "assistant", content: stepText };
+          if (stepToolCalls.length > 0) assistantMsg.tool_calls = stepToolCalls;
+          this._log.append(assistantMsg);
+
+          onStepFinish?.({ text: stepText, toolCalls: stepToolCalls, usage, step: stepCount });
+        }
+      }
+
+      // Update session stats.
+      this._stats.turns += stepCount;
+      this._stats.totalPromptTokens += totalUsage.promptTokens;
+      this._stats.totalCompletionTokens += totalUsage.completionTokens;
+
+      onFinish?.({ text: fullText, usage: totalUsage, steps: stepCount, toolCalls: allToolCalls });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      onError?.(error);
+      throw error;
+    }
+  }
+
   // ── Hydrate ──
 
   /** Restore conversation state from external history. */
@@ -405,6 +557,150 @@ export class HaloAgentImpl {
       (cacheHitTokens / 1000) *
       (this._adapter.pricing.inputPricePer1k - this._adapter.pricing.cachedInputPricePer1k)
     );
+  }
+}
+
+// ── StreamTextResult implementation ──
+
+/**
+ * Wraps an AsyncGenerator<TurnChunk> as a multi-consumer StreamTextResult.
+ *
+ * The generator is consumed eagerly and chunks are buffered. Each .to*()
+ * produces an independent ReadableStream from the buffer, enabling multiple
+ * consumers without stream-lock conflicts.
+ */
+class StreamTextResultImpl implements StreamTextResult {
+  private _chunks: TurnChunk[] = [];
+  private _text = "";
+  private _usage: Usage = { promptTokens: 0, completionTokens: 0 };
+  private _textResolve!: (value: string) => void;
+  private _usageResolve!: (value: Usage) => void;
+  private _ready = false;
+  private _error: Error | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _listeners = new Map<string, Set<(payload: any) => void>>();
+
+  text: Promise<string>;
+  usage: Promise<Usage>;
+
+  constructor(source: AsyncGenerator<TurnChunk>) {
+    this.text = new Promise((r) => (this._textResolve = r));
+    this.usage = new Promise((r) => (this._usageResolve = r));
+
+    // Consume eagerly into buffer.
+    this._consume(source);
+  }
+
+  // ── Public ──
+
+  toDataStream(opts?: { headers?: Record<string, string> }): Response {
+    const stream = new ReadableStream({
+      start: (controller) => {
+        const encoder = new TextEncoder();
+        for (const chunk of this._chunks) {
+          switch (chunk.type) {
+            case "text-delta":
+              controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.delta)}\n`));
+              break;
+            case "tool-call-delta":
+            case "tool-call-ready":
+              controller.enqueue(encoder.encode(`9:${JSON.stringify([chunk])}\n`));
+              break;
+            case "done":
+              controller.enqueue(
+                encoder.encode(`d:${JSON.stringify({ usage: chunk.usage })}\n`),
+              );
+              break;
+          }
+        }
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        ...opts?.headers,
+      },
+    });
+  }
+
+  toReadableStream(): ReadableStream<Uint8Array> {
+    const chunks = this._chunks;
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        for (const chunk of chunks) {
+          controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
+        }
+        controller.close();
+      },
+    });
+  }
+
+  async *toAsyncIterable(): AsyncIterable<TurnChunk> {
+    for (const chunk of this._chunks) {
+      yield chunk;
+    }
+  }
+
+  on(event: "text-delta", fn: (payload: TurnChunk & { type: "text-delta" }) => void): () => void;
+  on(
+    event: "tool-call-delta",
+    fn: (payload: TurnChunk & { type: "tool-call-delta" }) => void,
+  ): () => void;
+  on(
+    event: "tool-call-ready",
+    fn: (payload: TurnChunk & { type: "tool-call-ready" }) => void,
+  ): () => void;
+  on(event: "done", fn: (payload: TurnChunk & { type: "done" }) => void): () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: string, fn: (payload: any) => void): () => void {
+    let set = this._listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this._listeners.set(event, set);
+    }
+    set.add(fn);
+    return () => set!.delete(fn);
+  }
+
+  // ── Private ──
+
+  private async _consume(source: AsyncGenerator<TurnChunk>): Promise<void> {
+    try {
+      for await (const chunk of source) {
+        this._chunks.push(chunk);
+        if (chunk.type === "text-delta") {
+          this._text += chunk.delta;
+        } else if (chunk.type === "done") {
+          this._usage = chunk.usage;
+        }
+        this._emit(chunk.type, chunk);
+      }
+    } catch (err) {
+      this._error = err instanceof Error ? err : new Error(String(err));
+      throw this._error;
+    } finally {
+      this._ready = true;
+      this._textResolve(this._text);
+      this._usageResolve(this._usage);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _emit(type: string, payload: any): void {
+    const handlers = this._listeners.get(type);
+    if (!handlers) return;
+    for (const fn of handlers) {
+      try {
+        fn(payload);
+      } catch {
+        /* silent */
+      }
+    }
   }
 }
 

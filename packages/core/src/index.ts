@@ -15,6 +15,9 @@ export type {
   PricingSnapshot,
   HaloAgentOptions,
   ModelConfig,
+  StreamTextCallbacks,
+  StreamTextOptions,
+  StreamTextResult,
 } from "./session.js";
 
 export { StablePrefix } from "./prefix.js";
