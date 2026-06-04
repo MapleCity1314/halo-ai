@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { BasicRepair } from "../src/basic-repair.js";
-import type { ToolCall } from "@halo-ai/core";
+import type { ToolCall } from "@halo-sdk/core";
 
 describe("BasicRepair", () => {
   it("passes through valid JSON", () => {

@@ -1,6 +1,6 @@
-import { toDataStream } from "@halo-ai/stream";
-import { DeepSeekAdapter } from "@halo-ai/adapters";
-import { Halo, tool } from "@halo-ai/core";
+import { toDataStream } from "@halo-sdk/stream";
+import { DeepSeekAdapter } from "@halo-sdk/adapters";
+import { Halo, tool } from "@halo-sdk/core";
 
 const halo = new Halo({
   adapter: new DeepSeekAdapter({

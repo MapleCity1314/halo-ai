@@ -1,5 +1,5 @@
-import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk } from "@halo-ai/core";
-import type { ModelAdapter, ModelCapabilities, PricingInfo } from "@halo-ai/core";
+import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk } from "@halo-sdk/core";
+import type { ModelAdapter, ModelCapabilities, PricingInfo } from "@halo-sdk/core";
 
 export class DeepSeekAdapter implements ModelAdapter {
   readonly modelId: string;

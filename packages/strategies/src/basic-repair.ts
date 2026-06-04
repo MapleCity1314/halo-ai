@@ -1,4 +1,4 @@
-import type { ToolCall, RepairStrategy, RepairResult } from "@halo-ai/core";
+import type { ToolCall, RepairStrategy, RepairResult } from "@halo-sdk/core";
 
 export class BasicRepair implements RepairStrategy {
   repair(toolCalls: ToolCall[], _rawContent: string): RepairResult {

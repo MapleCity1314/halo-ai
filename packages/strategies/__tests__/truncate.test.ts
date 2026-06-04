@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TruncateStrategy } from "../src/truncate.js";
-import type { ChatMessage } from "@halo-ai/core";
+import type { ChatMessage } from "@halo-sdk/core";
 
 describe("TruncateStrategy", () => {
   it("does not modify history under the limit", () => {

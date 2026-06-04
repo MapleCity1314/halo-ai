@@ -22,7 +22,7 @@ function createAgent(adapter: MockAdapter, opts?: { tools?: ToolCall[] }) {
 }
 
 describe("HaloAgentImpl", () => {
-  // â”¢ãâ”¢ã send() â”¢ãâ”¢ã
+  // --- send() ---
 
   it("send returns content and updates stats", async () => {
     const adapter = createAdapter();
@@ -125,7 +125,7 @@ describe("HaloAgentImpl", () => {
     await agent.send("next");
   });
 
-  // â”¢ãâ”¢ã run() with tool calls â”¢ãâ”¢ã
+  // --- run() with tool calls ---
 
   it("run loops on tool calls", async () => {
     const adapter = createAdapter();
@@ -182,12 +182,12 @@ describe("HaloAgentImpl", () => {
     const agent = createAgent(adapter);
     const result = await agent.run("do it");
 
-    // No onToolCall â†?tools not executed, loop stops after first call
+    // No onToolCall -> tools not executed, loop stops after first call
     expect(result.toolCalls).toEqual([sampleToolCall]);
     expect(agent.stats.turns).toBe(1);
   });
 
-  // â”¢ãâ”¢ã submitToolResult â”¢ãâ”¢ã
+  // --- submitToolResult ---
 
   it("submitToolResult feeds tool result and calls model again", async () => {
     const adapter = createAdapter();
@@ -226,7 +226,7 @@ describe("HaloAgentImpl", () => {
     expect(result.content).toBe("Handled error");
   });
 
-  // â”¢ãâ”¢ã clearLog â”¢ãâ”¢ã
+  // --- clearLog ---
 
   it("clearLog resets history but preserves prefix", async () => {
     const adapter = createAdapter();
@@ -251,7 +251,7 @@ describe("HaloAgentImpl", () => {
     expect(result.content).toBe("fresh");
   });
 
-  // â”¢ãâ”¢ã Repair strategy â”¢ãâ”¢ã
+  // --- Repair strategy ---
 
   it("applies repair strategy when tool calls present", async () => {
     const adapter = createAdapter();
@@ -281,7 +281,7 @@ describe("HaloAgentImpl", () => {
     expect(repairEvents.length).toBe(1);
   });
 
-  // â”¢ãâ”¢ã Context truncation â”¢ãâ”¢ã
+  // --- Context truncation ---
 
   it("context strategy triggers context:truncated event", async () => {
     const adapter = createAdapter();

@@ -1,4 +1,4 @@
-import type { ChatMessage, ContextStrategy } from "@halo-ai/core";
+import type { ChatMessage, ContextStrategy } from "@halo-sdk/core";
 
 export class TruncateStrategy implements ContextStrategy {
   private _maxTokens: number;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { toDataStream, createHaloStream } from "../src/stream.js";
-import type { TurnChunk, Usage } from "@halo-ai/core";
+import type { TurnChunk, Usage } from "@halo-sdk/core";
 
 async function collectResponse(resp: Response): Promise<string> {
   const reader = resp.body!.getReader();

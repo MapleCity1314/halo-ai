@@ -1,4 +1,4 @@
-import type { TurnChunk, ToolCall, Usage } from "@halo-ai/core";
+import type { TurnChunk, ToolCall, Usage } from "@halo-sdk/core";
 
 /**
  * Wraps an AsyncGenerator<TurnChunk> as an SSE Response.
