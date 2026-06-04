@@ -1,4 +1,4 @@
-# @halo-ai/stream
+# @halo-sdk/stream
 
 Streaming utilities for Halo AI SDK.
 

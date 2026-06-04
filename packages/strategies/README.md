@@ -1,4 +1,4 @@
-# @halo-ai/strategies
+# @halo-sdk/strategies
 
 Pluggable strategies for Halo AI SDK.
 

@@ -1,4 +1,4 @@
-# @halo-ai/core
+# @halo-sdk/core
 
 Core types, factory, and session management for Halo AI SDK.
 

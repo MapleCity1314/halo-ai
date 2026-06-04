@@ -3,7 +3,7 @@
 <p align="left">
   <a href="https://github.com/halo-sdk/halo-ai/actions"><img src="https://github.com/halo-sdk/halo-ai/workflows/ci/badge.svg" alt="CI Status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-cc785c.svg" alt="License: MIT"></a>
-  <a href="https://www.npmjs.com/package/@halo-ai/core"><img src="https://img.shields.io/npm/v/@halo-ai/core.svg?color=5db8a6" alt="NPM Version"></a>
+  <a href="https://www.npmjs.com/package/@halo-sdk/core"><img src="https://img.shields.io/npm/v/@halo-sdk/core.svg?color=5db8a6" alt="NPM Version"></a>
 </p>
 
 **Halo** is the first **Cache-First Agent Framework** designed to build production-grade, ultra-low-latency AI agents. By leveraging LLM providers' native prompt caching features (like DeepSeek and Anthropic), Halo achieves up to a **90% reduction in token costs** and an **80% reduction in response latency** (TTFT) during multi-turn agentic loops.
@@ -42,27 +42,27 @@ Halo is designed following the Unix philosophy—highly cohesive, modular packag
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                      @halo-ai/core                     │
+│                      @halo-sdk/core                     │
 │    Factory, Agent Loop, Message Log & Stable Prefix    │
 └───────────┬──────────────────────────────┬─────────────┘
             ▼                              ▼
 ┌───────────────────────┐      ┌─────────────────────────┐
-│   @halo-ai/adapters   │      │   @halo-ai/strategies   │
+│   @halo-sdk/adapters   │      │   @halo-sdk/strategies   │
 │   DeepSeek / Anthropic│      │   Truncate & Self-Repair│
 └───────────────────────┘      └─────────────────────────┘
             │                              │
             └──────────────┬───────────────┘
                            ▼
 ┌────────────────────────────────────────────────────────┐
-│                     @halo-ai/stream                    │
+│                     @halo-sdk/stream                    │
 │    Full-Pipeline Stream Event Pipeline (Next.js/etc)   │
 └────────────────────────────────────────────────────────┘
 ```
 
-- **`@halo-ai/core`**: Core engine managing agent execution, context lifecycles, and stable prefix compilation.
-- **`@halo-ai/adapters`**: Caching-aware adapters converting raw LLM provider payloads to Halo's caching structure.
-- **`@halo-ai/strategies`**: Self-healing strategies (e.g., `BasicRepair` to fix bad model tool calls) and memory rules.
-- **`@halo-ai/stream`**: Dynamic serialization engine to pipe real-time agent execution events to the client.
+- **`@halo-sdk/core`**: Core engine managing agent execution, context lifecycles, and stable prefix compilation.
+- **`@halo-sdk/adapters`**: Caching-aware adapters converting raw LLM provider payloads to Halo's caching structure.
+- **`@halo-sdk/strategies`**: Self-healing strategies (e.g., `BasicRepair` to fix bad model tool calls) and memory rules.
+- **`@halo-sdk/stream`**: Dynamic serialization engine to pipe real-time agent execution events to the client.
 
 ---
 
@@ -94,9 +94,9 @@ Open `.env` and set your key (e.g. `DEEPSEEK_API_KEY` or `OPENAI_API_KEY`).
 Here is how you spin up a cache-first agent using the DeepSeek adapter and tool execution:
 
 ```typescript
-import { Halo, StablePrefix } from '@halo-ai/core';
-import { deepseek } from '@halo-ai/adapters';
-import { tool } from '@halo-ai/core'; // Helper to declare tools
+import { Halo, StablePrefix } from '@halo-sdk/core';
+import { deepseek } from '@halo-sdk/adapters';
+import { tool } from '@halo-sdk/core'; // Helper to declare tools
 import { z } from 'zod';
 
 // 1. Declare tools with strong schemas

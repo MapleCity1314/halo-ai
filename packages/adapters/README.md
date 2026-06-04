@@ -1,4 +1,4 @@
-# @halo-ai/adapters
+# @halo-sdk/adapters
 
 Model adapters for Halo AI SDK.
 
