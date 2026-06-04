@@ -20,8 +20,8 @@
     "changeset": "changeset",
     "ci:version": "changeset version",
     "ci:release": "turbo build && changeset publish",
-    "docs:dev": "pnpm --filter @halo-ai/docs dev",
-    "docs:build": "pnpm --filter @halo-ai/docs build",
+    "docs:dev": "pnpm --filter @halo-sdk/docs dev",
+    "docs:build": "pnpm --filter @halo-sdk/docs build",
     "example:dev": "pnpm --filter @example/next-halo dev",
     "setup": "pnpm install && pnpm build"
   },

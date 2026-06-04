@@ -1,7 +1,16 @@
 {
-  "name": "@halo-ai/core",
-  "version": "0.1.0",
+  "name": "@halo-sdk/core",
+  "version": "1.0.0",
+  "description": "Core types, factory, and session management for Halo AI SDK — cache-aware agent with automatic tool-call loop",
   "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "agent",
+    "cache-first",
+    "deepseek",
+    "tool-calling"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/halo-sdk/halo-ai",

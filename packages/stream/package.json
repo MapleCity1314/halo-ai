@@ -1,7 +1,15 @@
 {
-  "name": "@halo-ai/stream",
-  "version": "0.1.0",
+  "name": "@halo-sdk/stream",
+  "version": "1.0.0",
+  "description": "Streaming utilities for Halo AI SDK — SSE Response for Vercel AI SDK compatibility",
   "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "streaming",
+    "sse",
+    "vercel-ai-sdk"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/halo-sdk/halo-ai",
@@ -28,8 +36,11 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "peerDependencies": {
+    "@halo-sdk/core": ">=1.0.0"
+  },
   "devDependencies": {
-    "@halo-ai/core": "workspace:*",
+    "@halo-sdk/core": "workspace:*",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
   }

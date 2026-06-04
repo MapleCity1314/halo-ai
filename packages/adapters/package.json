@@ -1,7 +1,15 @@
 {
-  "name": "@halo-ai/adapters",
-  "version": "0.1.0",
+  "name": "@halo-sdk/adapters",
+  "version": "1.0.0",
+  "description": "Model adapters for Halo AI SDK — DeepSeek API with prefix cache support",
   "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "deepseek",
+    "adapter",
+    "prefix-cache"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/halo-sdk/halo-ai",
@@ -28,8 +36,11 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "peerDependencies": {
+    "@halo-sdk/core": ">=1.0.0"
+  },
   "devDependencies": {
-    "@halo-ai/core": "workspace:*",
+    "@halo-sdk/core": "workspace:*",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
   }

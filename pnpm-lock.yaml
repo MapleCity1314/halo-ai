@@ -44,13 +44,13 @@ importers:
       '@ai-sdk/react':
         specifier: ^1.2.12
         version: 1.2.12(react@18.3.1)(zod@3.25.76)
-      '@halo-ai/adapters':
+      '@halo-sdk/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
-      '@halo-ai/core':
+      '@halo-sdk/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@halo-ai/stream':
+      '@halo-sdk/stream':
         specifier: workspace:*
         version: link:../../packages/stream
       next:
@@ -87,7 +87,7 @@ importers:
 
   packages/adapters:
     devDependencies:
-      '@halo-ai/core':
+      '@halo-sdk/core':
         specifier: workspace:*
         version: link:../core
       typescript:
@@ -108,7 +108,7 @@ importers:
 
   packages/strategies:
     devDependencies:
-      '@halo-ai/core':
+      '@halo-sdk/core':
         specifier: workspace:*
         version: link:../core
       typescript:
@@ -120,7 +120,7 @@ importers:
 
   packages/stream:
     devDependencies:
-      '@halo-ai/core':
+      '@halo-sdk/core':
         specifier: workspace:*
         version: link:../core
       typescript:
