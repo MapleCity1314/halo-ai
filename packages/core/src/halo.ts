@@ -5,6 +5,7 @@ import type {
   ModelConfig,
   StreamTextOptions,
   StreamTextResult,
+  SkillMetadata,
 } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
@@ -27,6 +28,8 @@ export class Halo {
     fewShots?: ChatMessage[];
     /** Agent-level model defaults. Does not enter prefix — safe to change. */
     model?: ModelConfig;
+    /** Agent Skills (agentskills.io). Name+description enter system prompt. */
+    skills?: SkillMetadata[];
 
     context?: ContextStrategy;
     repair?: RepairStrategy;
@@ -40,6 +43,7 @@ export class Halo {
       tools: opts.tools,
       fewShots: opts.fewShots,
       model: opts.model,
+      skills: opts.skills,
       context: opts.context,
       repair: opts.repair,
       on: opts.on,

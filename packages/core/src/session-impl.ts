@@ -12,6 +12,7 @@ import type {
   ModelConfig,
   StreamTextOptions,
   StreamTextResult,
+  SkillMetadata,
 } from "./session.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
@@ -56,11 +57,70 @@ export class HaloAgentImpl {
       fewShots = opts.fewShots ?? [];
     }
 
+    // Inject skills metadata into system prompt (progressive disclosure).
+    const skills = opts.skills;
+    if (skills && skills.length > 0) {
+      system = system
+        ? `${system}\n\n## Available Skills\n${skills.map((s) => `- ${s.name}: ${s.description}`).join("\n")}`
+        : `## Available Skills\n${skills.map((s) => `- ${s.name}: ${s.description}`).join("\n")}`;
+    }
+
     this._prefix = new StablePrefix({
       system,
       tools: toolSpecs,
       fewShots,
     });
+
+    // Auto-register `loadSkill` tool if skills are present.
+    if (skills && skills.length > 0) {
+      const reservedName = "loadSkill";
+      if (this._toolExecutors.has(reservedName)) {
+        throw new Error(
+          `Reserved tool name "${reservedName}" conflicts with agent skills. Remove "${reservedName}" from your tools or pass an empty skills array.`,
+        );
+      }
+
+      const loadSkillSpec: ToolSpec = {
+        type: "function",
+        function: {
+          name: reservedName,
+          description:
+            "Load a skill to get specialized instructions for a specific task.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "The skill name to load (case-insensitive).",
+              },
+            },
+            required: ["name"],
+          },
+        },
+      };
+
+      this._prefix.addTool(loadSkillSpec);
+
+      // The execute function reads SKILL.md at runtime.
+      this._toolExecutors.set(reservedName, async (args: Record<string, unknown>) => {
+        const skillName = String(args.name ?? "").toLowerCase();
+        const skill = skills.find(
+          (s) => s.name.toLowerCase() === skillName,
+        );
+        if (!skill) {
+          const available = skills.map((s) => s.name).join(", ");
+          return `Skill "${skillName}" not found. Available: ${available}`;
+        }
+        try {
+          // @nodeOnly — uses Node.js fs
+          const { readFile } = await import("node:fs/promises");
+          const content = await readFile(`${skill.path}/SKILL.md`, "utf-8");
+          return stripFrontmatter(content);
+        } catch (err) {
+          return `Failed to load skill "${skillName}": ${String(err)}`;
+        }
+      });
+    }
     this._log = new MessageLog();
     this._context = opts.context;
     this._repair = opts.repair;
@@ -558,6 +618,14 @@ export class HaloAgentImpl {
       (this._adapter.pricing.inputPricePer1k - this._adapter.pricing.cachedInputPricePer1k)
     );
   }
+}
+
+// ── Helpers ──
+
+/** Strip YAML frontmatter from SKILL.md content. */
+function stripFrontmatter(content: string): string {
+  const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+  return match ? content.slice(match[0].length).trim() : content.trim();
 }
 
 // ── StreamTextResult implementation ──

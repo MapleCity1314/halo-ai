@@ -15,6 +15,7 @@ export type {
   PricingSnapshot,
   HaloAgentOptions,
   ModelConfig,
+  SkillMetadata,
   StreamTextCallbacks,
   StreamTextOptions,
   StreamTextResult,
@@ -25,4 +26,5 @@ export { MessageLog } from "./log.js";
 export { HaloAgent } from "./halo-agent.js";
 export { Halo } from "./halo.js";
 export { tool } from "./tool.js";
+export { discoverSkills } from "./skills.js";
 export type { HaloAgentImpl } from "./session-impl.js";

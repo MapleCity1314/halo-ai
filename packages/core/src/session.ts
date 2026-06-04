@@ -72,6 +72,18 @@ export interface ModelConfig extends ModelCallOptions {}
 
 // ── Session options ──
 
+// ── Skills ──
+
+/** Metadata extracted from a SKILL.md file. */
+export interface SkillMetadata {
+  name: string;
+  description: string;
+  /** Absolute path to the skill directory (for reading SKILL.md body). */
+  path: string;
+}
+
+// ── Session options ──
+
 export interface HaloAgentOptions {
   adapter: ModelAdapter;
 
@@ -103,6 +115,13 @@ export interface HaloAgentOptions {
 
   /** Agent-level model defaults. Does not enter StablePrefix — safe to change without cache miss. */
   model?: ModelConfig;
+
+  /**
+   * Agent Skills (agentskills.io spec).
+   * Name + description enter StablePrefix (system prompt).
+   * Runtime: a `loadSkill` tool is auto-registered.
+   */
+  skills?: SkillMetadata[];
 
   context?: ContextStrategy;
   repair?: RepairStrategy;
