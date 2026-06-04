@@ -600,3 +600,194 @@ input:focus-visible {
   margin: 4px 0 0 !important;
   font-family: var(--ds-font-sans);
 }
+
+/* ==========================================================================
+   Homepage Animations & Visual Polish
+   ========================================================================== */
+
+/* Subtle hero background decoration */
+.home-page-container {
+  position: relative;
+}
+
+.home-page-container::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(204, 120, 92, 0.06) 0%,
+    rgba(204, 120, 92, 0.02) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Feature card enter animation */
+.home-features {
+  position: relative;
+  z-index: 1;
+}
+
+.feature-card {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(20, 20, 19, 0.1);
+}
+
+/* Model/project card hover lift */
+.model-card {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.model-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(20, 20, 19, 0.1);
+}
+
+/* Contrast card subtle glow on comparison */
+.contrast-column--agentic {
+  position: relative;
+  overflow: hidden;
+}
+
+.contrast-column--agentic::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at top right,
+    rgba(93, 184, 166, 0.08) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* CTA band hover effect */
+.cta-band__btn {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.cta-band__btn:hover {
+  transform: scale(1.04);
+}
+
+/* Code window card subtle animation */
+.code-window-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.code-window-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ==========================================================================
+   Code Copy Button Enhancement
+   ========================================================================== */
+
+.vp-code-group .copy,
+div[class*="language-"] .copy {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+div[class*="language-"]:hover .copy,
+.vp-code-group:hover .copy {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Sidebar Enhancements
+   ========================================================================== */
+
+/* Active sidebar item */
+.VPSidebarItem.is-active > .item > .link > .text {
+  color: var(--ds-primary) !important;
+  font-weight: 500;
+}
+
+.VPSidebarItem.is-active > .item > .link {
+  background: rgba(204, 120, 92, 0.08);
+  border-radius: var(--ds-rounded-sm);
+}
+
+/* Sidebar link hover */
+.VPSidebarItem .item .link:hover {
+  color: var(--ds-primary) !important;
+}
+
+/* Sidebar group title */
+.VPSidebarItem.level-0 > .item > .text {
+  font-weight: 600;
+  color: var(--ds-ink);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Smoother collapse/expand */
+.VPSidebarItem .items {
+  transition: opacity 0.2s ease;
+}
+
+/* ==========================================================================
+   404 Page Enhancements
+   ========================================================================== */
+
+/* Center the 404 content */
+.not-found {
+  text-align: center;
+  padding: 96px 24px;
+}
+
+.not-found h1 {
+  font-family: var(--ds-font-display);
+  font-size: 72px;
+  color: var(--ds-primary);
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .VPSidebar,
+  .VPLocalNav,
+  .VPNav,
+  .VPDocFooter,
+  .edit-link,
+  .VPSwitchAppearance {
+    display: none !important;
+  }
+
+  .VPContent {
+    padding: 0 !important;
+  }
+
+  .vp-doc {
+    max-width: 100% !important;
+  }
+
+  .vp-doc a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--ds-muted);
+  }
+}

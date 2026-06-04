@@ -159,4 +159,27 @@
 
   /* ---- Primary (remains Coral but slightly adjusted if desired, keeping consistent with DESIGN.md) ---- */
   --ds-primary-disabled: #2d2b27;
+
+  /* ---- Animation Curves ---- */
+  --ds-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ds-duration-fast: 150ms;
+  --ds-duration-normal: 250ms;
+  --ds-duration-slow: 400ms;
+
+  /* ---- Z-Index Layers ---- */
+  --ds-z-sidebar: 20;
+  --ds-z-nav: 30;
+  --ds-z-overlay: 40;
+  --ds-z-modal: 50;
+  --ds-z-toast: 60;
+  --ds-z-tooltip: 70;
+
+  /* ---- Shadow Levels (Light) ---- */
+  --ds-shadow-xs: 0 1px 2px rgba(20, 20, 19, 0.04);
+  --ds-shadow-sm: 0 2px 4px rgba(20, 20, 19, 0.06);
+  --ds-shadow-md: 0 4px 8px rgba(20, 20, 19, 0.08);
+  --ds-shadow-lg: 0 8px 24px rgba(20, 20, 19, 0.12);
+  --ds-shadow-xl: 0 12px 40px rgba(20, 20, 19, 0.16);
 }
