@@ -29,4 +29,5 @@ export { HaloAgent } from "./halo-agent.js";
 export { Halo } from "./halo.js";
 export { tool } from "./tool.js";
 export { discoverSkills } from "./skills.js";
+export { calculator, datetime } from "./tools-builtin.js";
 export type { HaloAgentImpl } from "./session-impl.js";
