@@ -1,4 +1,4 @@
-import type { ChatMessage, ToolCall, ToolSpec, Usage } from "./types.js";
+import type { ChatMessage, ToolCall, ToolSpec, Usage, ResponseFormat } from "./types.js";
 import type { TurnChunk } from "./session.js";
 
 export interface ModelCapabilities {
@@ -11,6 +11,18 @@ export interface PricingInfo {
   inputPricePer1k: number;
   cachedInputPricePer1k: number;
 }
+
+/** Per-request model parameters. Overrides agent-level defaults. */
+export interface ModelCallOptions {
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  maxTokens?: number;
+  seed?: number;
+  stop?: string[];
+}
+
+export { type ResponseFormat } from "./types.js";
 
 export interface ModelAdapter {
   /**
@@ -25,6 +37,8 @@ export interface ModelAdapter {
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>;
 
   /** Stream variant with the same prefix/history separation. */
@@ -32,6 +46,8 @@ export interface ModelAdapter {
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): AsyncGenerator<TurnChunk>;
 
   readonly modelId: string;

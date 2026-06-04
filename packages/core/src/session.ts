@@ -1,6 +1,6 @@
 import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
-import type { ModelAdapter } from "./model-adapter.js";
+import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
 
 // ── Turn result ──
 
@@ -63,11 +63,29 @@ export interface SessionStats {
   recentDiagnostics: CacheMissReason[];
 }
 
+// ── Model configuration ──
+
+export type { ModelCallOptions } from "./model-adapter.js";
+
+/** Agent-level model defaults. Does NOT enter StablePrefix — safe to change without cache miss. */
+export interface ModelConfig extends ModelCallOptions {}
+
 // ── Session options ──
 
 export interface HaloAgentOptions {
   adapter: ModelAdapter;
-  system: string;
+
+  /**
+   * Prefix messages. All messages go into StablePrefix in order.
+   * The first `role: "system"` message defines the system prompt;
+   * remaining messages act as few-shot examples.
+   *
+   * Mutually exclusive with `system` / `fewShots`.
+   */
+  messages?: ChatMessage[];
+
+  /** @deprecated Use `messages: [{ role: "system", content: "..." }]` instead. */
+  system?: string;
 
   /**
    * Tools available to the model.
@@ -79,7 +97,12 @@ export interface HaloAgentOptions {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tools?: ToolSpec[] | Record<string, ToolDefinition<any>>;
+
+  /** @deprecated Use `messages` with `role: "user"` / `role: "assistant"` entries instead. */
   fewShots?: ChatMessage[];
+
+  /** Agent-level model defaults. Does not enter StablePrefix — safe to change without cache miss. */
+  model?: ModelConfig;
 
   context?: ContextStrategy;
   repair?: RepairStrategy;

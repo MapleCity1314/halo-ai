@@ -6,6 +6,7 @@ import type {
   SessionStats,
   HaloAgentOptions,
 } from "./session.js";
+import type { ModelCallOptions } from "./model-adapter.js";
 import { HaloAgentImpl } from "./session-impl.js";
 
 /**
@@ -39,7 +40,7 @@ export class HaloAgent {
       maxSteps?: number;
       onToolCall?: (call: ToolCall) => Promise<ToolResult>;
       onStep?: (step: { step: number; content: string; toolCalls: ToolCall[] }) => void;
-    },
+    } & ModelCallOptions,
   ): Promise<TurnResult> {
     return this._impl.run(input, opts);
   }
@@ -48,18 +49,18 @@ export class HaloAgent {
    * Send a message. Tool calls are returned, NOT automatically executed.
    * Use submitToolResult() to feed results back.
    */
-  async send(input: string): Promise<TurnResult> {
-    return this._impl.send(input);
+  async send(input: string, options?: ModelCallOptions): Promise<TurnResult> {
+    return this._impl.send(input, options);
   }
 
   /** Stream a message. */
-  async *stream(input: string): AsyncGenerator<TurnChunk> {
-    yield* this._impl.stream(input);
+  async *stream(input: string, options?: ModelCallOptions): AsyncGenerator<TurnChunk> {
+    yield* this._impl.stream(input, options);
   }
 
   /** Submit a tool execution result. Triggers another model call. */
-  async submitToolResult(result: ToolResult): Promise<TurnResult> {
-    return this._impl.submitToolResult(result);
+  async submitToolResult(result: ToolResult, options?: ModelCallOptions): Promise<TurnResult> {
+    return this._impl.submitToolResult(result, options);
   }
 
   /**

@@ -1,5 +1,5 @@
 import { HaloAgent } from "./halo-agent.js";
-import type { HaloAgentOptions, AgentEvent } from "./session.js";
+import type { HaloAgentOptions, AgentEvent, ModelConfig } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";
@@ -12,9 +12,15 @@ export class Halo {
   }
 
   agent(opts: {
-    system: string;
+    /** Prefix messages (preferred). Mutually exclusive with `system`. */
+    messages?: ChatMessage[];
+    /** @deprecated Use `messages` with `role: "system"` instead. */
+    system?: string;
     tools?: ToolSpec[] | Record<string, ToolDefinition<any>>;
+    /** @deprecated Use `messages` with `role: "user"` / `role: "assistant"` instead. */
     fewShots?: ChatMessage[];
+    /** Agent-level model defaults. Does not enter prefix — safe to change. */
+    model?: ModelConfig;
 
     context?: ContextStrategy;
     repair?: RepairStrategy;
@@ -23,9 +29,11 @@ export class Halo {
   }): HaloAgent {
     const agentOpts: HaloAgentOptions = {
       adapter: this._adapter,
+      messages: opts.messages,
       system: opts.system,
       tools: opts.tools,
       fewShots: opts.fewShots,
+      model: opts.model,
       context: opts.context,
       repair: opts.repair,
       on: opts.on,

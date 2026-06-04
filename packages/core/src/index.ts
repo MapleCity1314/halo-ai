@@ -1,5 +1,5 @@
-export type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Role, Usage } from "./types.js";
-export type { ModelAdapter, ModelCapabilities, PricingInfo } from "./model-adapter.js";
+export type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Role, Usage, ResponseFormat } from "./types.js";
+export type { ModelAdapter, ModelCapabilities, PricingInfo, ModelCallOptions } from "./model-adapter.js";
 export type {
   ContextStrategy,
   RepairStrategy,
@@ -14,6 +14,7 @@ export type {
   SessionStats,
   PricingSnapshot,
   HaloAgentOptions,
+  ModelConfig,
 } from "./session.js";
 
 export { StablePrefix } from "./prefix.js";

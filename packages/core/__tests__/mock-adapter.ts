@@ -4,9 +4,11 @@ import type {
   ToolSpec,
   Usage,
   TurnChunk,
+  ResponseFormat,
   ModelAdapter,
   ModelCapabilities,
   PricingInfo,
+  ModelCallOptions,
 } from "../src/index.js";
 /**
  * Mock adapter that returns pre-programmed responses.
@@ -31,6 +33,8 @@ export class MockAdapter implements ModelAdapter {
         prefix: ChatMessage[],
         history: ChatMessage[],
         tools?: ToolSpec[],
+        responseFormat?: ResponseFormat,
+        options?: ModelCallOptions,
       ) => Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>)
     | null = null;
   streamFn:
@@ -38,6 +42,8 @@ export class MockAdapter implements ModelAdapter {
         prefix: ChatMessage[],
         history: ChatMessage[],
         tools?: ToolSpec[],
+        responseFormat?: ResponseFormat,
+        options?: ModelCallOptions,
       ) => AsyncGenerator<TurnChunk>)
     | null = null;
 
@@ -45,18 +51,22 @@ export class MockAdapter implements ModelAdapter {
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
     if (!this.chatFn) throw new Error("MockAdapter.chat not configured");
-    return this.chatFn(prefix, history, tools);
+    return this.chatFn(prefix, history, tools, responseFormat, options);
   }
 
   async *stream(
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): AsyncGenerator<TurnChunk> {
     if (!this.streamFn) throw new Error("MockAdapter.stream not configured");
-    yield* this.streamFn(prefix, history, tools);
+    yield* this.streamFn(prefix, history, tools, responseFormat, options);
   }
 }
 

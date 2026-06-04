@@ -9,8 +9,9 @@ import type {
   AgentEvent,
   SessionStats,
   HaloAgentOptions,
+  ModelConfig,
 } from "./session.js";
-import type { ModelAdapter } from "./model-adapter.js";
+import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 
 /** Internal implementation. Exported for testing only. */
@@ -24,18 +25,39 @@ export class HaloAgentImpl {
   private _stats: SessionStats;
   private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   private _toolExecutors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
+  private _modelDefaults: ModelConfig;
 
   constructor(opts: HaloAgentOptions) {
     this._adapter = opts.adapter;
+    this._modelDefaults = opts.model ?? {};
 
     // Normalize tools: accept both ToolSpec[] and Record<string, ToolDefinition>.
     const { toolSpecs, executors } = normalizeTools(opts.tools);
     this._toolExecutors = executors;
 
+    // Resolve system + fewShots: prefer `messages`, fall back to legacy fields.
+    let system: string;
+    let fewShots: ChatMessage[] = [];
+
+    if (opts.messages && opts.system !== undefined) {
+      throw new Error(
+        "Cannot specify both `messages` and `system`. Use `messages` with a `role: 'system'` entry, or use `system` alone.",
+      );
+    }
+
+    if (opts.messages) {
+      const systemMsg = opts.messages.find((m) => m.role === "system");
+      system = systemMsg?.content ?? "";
+      fewShots = opts.messages.filter((m) => m.role !== "system");
+    } else {
+      system = opts.system ?? "";
+      fewShots = opts.fewShots ?? [];
+    }
+
     this._prefix = new StablePrefix({
-      system: opts.system,
+      system,
       tools: toolSpecs,
-      fewShots: opts.fewShots,
+      fewShots,
     });
     this._log = new MessageLog();
     this._context = opts.context;
@@ -84,16 +106,14 @@ export class HaloAgentImpl {
       maxSteps?: number;
       onToolCall?: (call: ToolCall) => Promise<ToolResult>;
       onStep?: (s: { step: number; content: string; toolCalls: ToolCall[] }) => void;
-    },
+    } & ModelCallOptions,
   ): Promise<TurnResult> {
-    const maxSteps = opts?.maxSteps ?? 10;
-    const onToolCall = opts?.onToolCall;
-    const onStep = opts?.onStep;
+    const { maxSteps, onToolCall, onStep, ...callOptions } = opts ?? {};
 
     let step = 0;
-    let result = await this.send(input);
+    let result = await this.send(input, callOptions);
 
-    while (result.toolCalls.length > 0 && step < maxSteps) {
+    while (result.toolCalls.length > 0 && step < (maxSteps ?? 10)) {
       step++;
 
       for (const call of result.toolCalls) {
@@ -126,31 +146,32 @@ export class HaloAgentImpl {
       }
 
       onStep?.({ step, content: result.content, toolCalls: result.toolCalls });
-      result = await this._callModel();
+      result = await this._callModel(callOptions);
     }
 
     return result;
   }
 
-  async send(input: string): Promise<TurnResult> {
+  async send(input: string, options?: ModelCallOptions): Promise<TurnResult> {
     this._log.append({ role: "user", content: input });
-    return this._callModel();
+    return this._callModel(options);
   }
 
-  async *stream(input: string): AsyncGenerator<TurnChunk> {
+  async *stream(input: string, options?: ModelCallOptions): AsyncGenerator<TurnChunk> {
     this._log.append({ role: "user", content: input });
     const prefix = this._prefix.toMessages();
     const history = this._log.toFullHistory();
-    yield* this._adapter.stream(prefix, history, this._prefix.tools());
+    const merged: ModelCallOptions = { ...this._modelDefaults, ...options };
+    yield* this._adapter.stream(prefix, history, this._prefix.tools(), undefined, merged);
   }
 
-  async submitToolResult(result: ToolResult): Promise<TurnResult> {
+  async submitToolResult(result: ToolResult, options?: ModelCallOptions): Promise<TurnResult> {
     this._log.append({
       role: "tool",
       tool_call_id: result.toolCallId,
       content: result.isError ? `ERROR: ${result.output}` : result.output,
     });
-    return this._callModel();
+    return this._callModel(options);
   }
 
   /**
@@ -246,6 +267,8 @@ export class HaloAgentImpl {
           this._prefix.toMessages(),
           [{ role: "user", content: "ping" }],
           undefined,
+          undefined,
+          undefined,
         )
         .catch(() => {
           /* keep-alive failure is silent */
@@ -296,15 +319,19 @@ export class HaloAgentImpl {
     return history;
   }
 
-  private async _callModel(): Promise<TurnResult> {
+  private async _callModel(options?: ModelCallOptions): Promise<TurnResult> {
     const prefix = this._prefix.toMessages();
     const history = this._resolveHistory();
     const tools = this._prefix.tools();
+
+    const merged: ModelCallOptions = { ...this._modelDefaults, ...options };
 
     const { content, toolCalls, usage } = await this._adapter.chat(
       prefix,
       history,
       tools.length > 0 ? tools : undefined,
+      undefined, // responseFormat
+      merged,
     );
 
     // Apply repair.

@@ -1,5 +1,5 @@
-import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk } from "@halo-sdk/core";
-import type { ModelAdapter, ModelCapabilities, PricingInfo } from "@halo-sdk/core";
+import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk, ResponseFormat } from "@halo-sdk/core";
+import type { ModelAdapter, ModelCapabilities, PricingInfo, ModelCallOptions } from "@halo-sdk/core";
 
 export class DeepSeekAdapter implements ModelAdapter {
   readonly modelId: string;
@@ -28,6 +28,8 @@ export class DeepSeekAdapter implements ModelAdapter {
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): Promise<{
     content: string;
     toolCalls: ToolCall[];
@@ -40,6 +42,8 @@ export class DeepSeekAdapter implements ModelAdapter {
       stream: false,
     };
     if (tools?.length) body.tools = tools;
+    if (responseFormat) body.response_format = responseFormat;
+    if (options) this._applyOptions(body, options);
 
     const resp = await fetch(`${this._baseUrl}/chat/completions`, {
       method: "POST",
@@ -85,6 +89,8 @@ export class DeepSeekAdapter implements ModelAdapter {
     prefix: ChatMessage[],
     history: ChatMessage[],
     tools?: ToolSpec[],
+    responseFormat?: ResponseFormat,
+    options?: ModelCallOptions,
   ): AsyncGenerator<TurnChunk> {
     const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
@@ -94,6 +100,8 @@ export class DeepSeekAdapter implements ModelAdapter {
       stream_options: { include_usage: true },
     };
     if (tools?.length) body.tools = tools;
+    if (responseFormat) body.response_format = responseFormat;
+    if (options) this._applyOptions(body, options);
 
     const resp = await fetch(`${this._baseUrl}/chat/completions`, {
       method: "POST",
@@ -176,5 +184,14 @@ export class DeepSeekAdapter implements ModelAdapter {
     } finally {
       reader.releaseLock();
     }
+  }
+
+  private _applyOptions(body: Record<string, unknown>, options: ModelCallOptions): void {
+    if (options.temperature !== undefined) body.temperature = options.temperature;
+    if (options.topP !== undefined) body.top_p = options.topP;
+    if (options.topK !== undefined) body.top_k = options.topK;
+    if (options.maxTokens !== undefined) body.max_tokens = options.maxTokens;
+    if (options.seed !== undefined) body.seed = options.seed;
+    if (options.stop !== undefined) body.stop = options.stop;
   }
 }

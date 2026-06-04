@@ -42,6 +42,16 @@ export interface ToolDefinition<TArgs = Record<string, unknown>> {
   execute?: (args: TArgs) => string | Promise<string>;
 }
 
+/** Structured output format. OpenAI-compatible. */
+export interface ResponseFormat {
+  type: "json_schema";
+  json_schema: {
+    name: string;
+    schema: Record<string, unknown>;
+    strict?: boolean;
+  };
+}
+
 /** Token usage for a single model call. */
 export interface Usage {
   promptTokens: number;
