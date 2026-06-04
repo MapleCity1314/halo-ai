@@ -154,6 +154,23 @@ export interface StreamTextOptions extends ModelCallOptions, StreamTextCallbacks
   onToolCall?: (call: ToolCall) => Promise<ToolResult>;
 }
 
+// ── Object generation ──
+
+export interface GenerateObjectOptions<TSchema = Record<string, unknown>> {
+  schema: TSchema;
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  seed?: number;
+}
+
+export interface GenerateObjectResult<T = unknown> {
+  object: T;
+  usage: Usage;
+}
+
+// ── StreamText ──
+
 export interface StreamTextResult {
   toDataStream(opts?: { headers?: Record<string, string> }): Response;
   toReadableStream(): ReadableStream<Uint8Array>;

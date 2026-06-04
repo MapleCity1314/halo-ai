@@ -13,8 +13,11 @@ import type {
   StreamTextOptions,
   StreamTextResult,
   SkillMetadata,
+  GenerateObjectOptions,
+  GenerateObjectResult,
 } from "./session.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
+import type { ResponseFormat } from "./types.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 
 /** Internal implementation. Exported for testing only. */
@@ -489,6 +492,111 @@ export class HaloAgentImpl {
     }
   }
 
+  // ── Object generation ──
+
+  /**
+   * Generate a structured object from a prompt.
+   *
+   * Schema (Zod or JSON Schema) is sent as `responseFormat` — does NOT
+   * enter StablePrefix. Tools are suppressed for this call.
+   */
+  async generateObject<T = unknown>(
+    input: string,
+    opts: GenerateObjectOptions<unknown>,
+  ): Promise<GenerateObjectResult<T>> {
+    this._log.append({ role: "user", content: input });
+
+    const prefix = this._prefix.toMessages();
+    const history = this._resolveHistory();
+
+    const { schema, ...callOptions } = opts;
+    const responseFormat = await convertToResponseFormat(schema);
+    const merged: ModelCallOptions = { ...this._modelDefaults, ...callOptions };
+
+    const { content, usage } = await this._adapter.chat(
+      prefix,
+      history,
+      undefined, // tools suppressed
+      responseFormat,
+      merged,
+    );
+
+    // Parse JSON from content.
+    let object: T;
+    try {
+      object = JSON.parse(content) as T;
+    } catch {
+      throw new Error(
+        `Failed to parse generated object as JSON. Raw content: ${content.slice(0, 200)}`,
+      );
+    }
+
+    // Append to message log.
+    this._log.append({ role: "assistant", content });
+
+    // Update stats.
+    this._stats.turns++;
+    this._stats.totalPromptTokens += usage.promptTokens;
+    this._stats.totalCompletionTokens += usage.completionTokens;
+
+    return { object, usage };
+  }
+
+  /**
+   * Stream a progressively-built object from a prompt.
+   *
+   * Schema is sent as `responseFormat` — does NOT enter StablePrefix.
+   * Tools are suppressed.
+   */
+  async *streamObject<T = unknown>(
+    input: string,
+    opts: GenerateObjectOptions<unknown>,
+  ): AsyncGenerator<T> {
+    this._log.append({ role: "user", content: input });
+
+    const prefix = this._prefix.toMessages();
+    const history = this._resolveHistory();
+
+    const { schema, ...callOptions } = opts;
+    const responseFormat = await convertToResponseFormat(schema);
+    const merged: ModelCallOptions = { ...this._modelDefaults, ...callOptions };
+
+    let fullContent = "";
+
+    for await (const chunk of this._adapter.stream(
+      prefix,
+      history,
+      undefined, // tools suppressed
+      responseFormat,
+      merged,
+    )) {
+      if (chunk.type === "text-delta") {
+        fullContent += chunk.delta;
+        // Attempt progressive JSON parse.
+        try {
+          yield JSON.parse(fullContent) as T;
+        } catch {
+          // Partial JSON — skip yielding this iteration.
+        }
+      } else if (chunk.type === "done") {
+        // Final parse.
+        try {
+          yield JSON.parse(fullContent) as T;
+        } catch {
+          throw new Error(
+            `Failed to parse streamed object as JSON. Raw: ${fullContent.slice(0, 200)}`,
+          );
+        }
+
+        // Append to log and update stats.
+        this._log.append({ role: "assistant", content: fullContent });
+        this._stats.turns++;
+        this._stats.totalPromptTokens += chunk.usage.promptTokens;
+        this._stats.totalCompletionTokens += chunk.usage.completionTokens;
+      }
+    }
+  }
+
   // ── Hydrate ──
 
   /** Restore conversation state from external history. */
@@ -626,6 +734,62 @@ export class HaloAgentImpl {
 function stripFrontmatter(content: string): string {
   const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
   return match ? content.slice(match[0].length).trim() : content.trim();
+}
+
+/**
+ * Convert a Zod or JSON Schema to an OpenAI-compatible ResponseFormat.
+ * Zod schemas are converted via dynamic import of `zod-to-json-schema`.
+ * Plain JSON Schema objects pass through directly.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function convertToResponseFormat(schema: any): Promise<ResponseFormat> {
+  // Detect Zod schema by checking for `_def` or `parse` properties.
+  const isZod =
+    typeof schema === "object" &&
+    schema !== null &&
+    ("_def" in schema || typeof schema.parse === "function");
+
+  let jsonSchema: Record<string, unknown>;
+
+  if (isZod) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mod: any = await import("zod-to-json-schema");
+      const zodToJsonSchema = mod.zodToJsonSchema ?? mod.default?.zodToJsonSchema ?? mod;
+      jsonSchema = zodToJsonSchema(schema, {
+        target: "openAi",
+      }) as Record<string, unknown>;
+    } catch {
+      throw new Error(
+        "zod-to-json-schema is required for Zod schema support. Install it as a peer dependency.",
+      );
+    }
+  } else if (
+    typeof schema === "object" &&
+    schema !== null &&
+    "type" in schema
+  ) {
+    // Plain JSON Schema — passthrough.
+    jsonSchema = schema as Record<string, unknown>;
+  } else {
+    throw new Error(
+      "schema must be a Zod schema or a plain JSON Schema object.",
+    );
+  }
+
+  // Extract schema name from the JSON Schema (if present) or use "output".
+  const name = (jsonSchema as { name?: string }).name ?? "output";
+  const cleanSchema = { ...jsonSchema };
+  delete (cleanSchema as { name?: string }).name;
+
+  return {
+    type: "json_schema",
+    json_schema: {
+      name,
+      schema: cleanSchema,
+      strict: true,
+    },
+  };
 }
 
 // ── StreamTextResult implementation ──

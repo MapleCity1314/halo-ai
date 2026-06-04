@@ -19,6 +19,8 @@ export type {
   StreamTextCallbacks,
   StreamTextOptions,
   StreamTextResult,
+  GenerateObjectOptions,
+  GenerateObjectResult,
 } from "./session.js";
 
 export { StablePrefix } from "./prefix.js";

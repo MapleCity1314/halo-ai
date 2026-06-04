@@ -7,6 +7,8 @@ import type {
   HaloAgentOptions,
   StreamTextOptions,
   StreamTextResult,
+  GenerateObjectOptions,
+  GenerateObjectResult,
 } from "./session.js";
 import type { ModelCallOptions } from "./model-adapter.js";
 import { HaloAgentImpl } from "./session-impl.js";
@@ -71,6 +73,32 @@ export class HaloAgent {
     opts?: StreamTextOptions,
   ): StreamTextResult {
     return this._impl.streamText(input, opts);
+  }
+
+  /**
+   * Generate a structured object from a prompt.
+   *
+   * Accepts Zod schemas (compile-time type inference) or plain JSON Schema.
+   * Schema is sent as `responseFormat` — does NOT enter StablePrefix.
+   * Tools are suppressed for this call.
+   */
+  async generateObject<T = unknown>(
+    input: string,
+    opts: GenerateObjectOptions<unknown>,
+  ): Promise<GenerateObjectResult<T>> {
+    return this._impl.generateObject<T>(input, opts);
+  }
+
+  /**
+   * Stream a progressively-built object from a prompt.
+   *
+   * Yields incremental partial objects as the JSON builds up.
+   */
+  streamObject<T = unknown>(
+    input: string,
+    opts: GenerateObjectOptions<unknown>,
+  ): AsyncGenerator<T> {
+    return this._impl.streamObject<T>(input, opts);
   }
 
   /** Submit a tool execution result. Triggers another model call. */
