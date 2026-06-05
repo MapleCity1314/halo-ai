@@ -30,4 +30,13 @@ export { Halo } from "./halo.js";
 export { tool } from "./tool.js";
 export { discoverSkills } from "./skills.js";
 export { calculator, datetime } from "./tools-builtin.js";
+export type {
+  Sandbox,
+  ToolContext,
+  ExecOptions,
+  ExecShellOptions,
+  ExecResult,
+  ProcessHandle,
+} from "./sandbox.js";
+export { SandboxError } from "./sandbox.js";
 export type { HaloAgentImpl } from "./session-impl.js";

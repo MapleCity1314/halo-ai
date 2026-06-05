@@ -1,6 +1,7 @@
 import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
+import type { Sandbox } from "./sandbox.js";
 
 // ── Turn result ──
 
@@ -122,6 +123,12 @@ export interface HaloAgentOptions {
    * Runtime: a `loadSkill` tool is auto-registered.
    */
   skills?: SkillMetadata[];
+
+  /**
+   * Sandbox for file operations and command execution.
+   * Does NOT enter StablePrefix — safe to change without cache miss.
+   */
+  sandbox?: Sandbox;
 
   context?: ContextStrategy;
   repair?: RepairStrategy;

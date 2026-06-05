@@ -18,6 +18,7 @@ import type {
 } from "./session.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
 import type { ResponseFormat } from "./types.js";
+import type { Sandbox, ToolContext } from "./sandbox.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 
 /** Internal implementation. Exported for testing only. */
@@ -32,10 +33,12 @@ export class HaloAgentImpl {
   private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   private _toolExecutors: Map<string, (args: Record<string, unknown>) => string | Promise<string>>;
   private _modelDefaults: ModelConfig;
+  private _sandbox: Sandbox | undefined;
 
   constructor(opts: HaloAgentOptions) {
     this._adapter = opts.adapter;
     this._modelDefaults = opts.model ?? {};
+    this._sandbox = opts.sandbox;
 
     // Normalize tools: accept both ToolSpec[] and Record<string, ToolDefinition>.
     const { toolSpecs, executors } = normalizeTools(opts.tools);
@@ -184,14 +187,7 @@ export class HaloAgentImpl {
       for (const call of result.toolCalls) {
         const executor = this._toolExecutors.get(call.function.name);
         if (executor) {
-          // Auto-execute when tool definition includes execute().
-          let parsed: Record<string, unknown>;
-          try {
-            parsed = JSON.parse(call.function.arguments);
-          } catch {
-            parsed = {};
-          }
-          const output = await executor(parsed);
+          const output = await this._executeTool(call, executor);
           this._log.append({
             role: "tool",
             tool_call_id: call.id,
@@ -444,13 +440,7 @@ export class HaloAgentImpl {
           for (const call of stepToolCalls) {
             const executor = this._toolExecutors.get(call.function.name);
             if (executor) {
-              let parsed: Record<string, unknown>;
-              try {
-                parsed = JSON.parse(call.function.arguments);
-              } catch {
-                parsed = {};
-              }
-              const output = await executor(parsed);
+              const output = await this._executeTool(call, executor);
               this._log.append({
                 role: "tool",
                 tool_call_id: call.id,
@@ -618,6 +608,26 @@ export class HaloAgentImpl {
   }
 
   // ── Private ──
+
+  /**
+   * Execute a tool call with automatic sandbox injection.
+   * Detects execute.length: 2 params → passes ToolContext.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async _executeTool(call: ToolCall, executor: (args: Record<string, unknown>, ctx?: ToolContext) => any): Promise<string> {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(call.function.arguments);
+    } catch {
+      parsed = {};
+    }
+
+    if (executor.length >= 2 && this._sandbox) {
+      const ctx: ToolContext = { sandbox: this._sandbox };
+      return String(await executor(parsed, ctx));
+    }
+    return String(await executor(parsed));
+  }
 
   /** Resolve history, applying ContextStrategy (prefix is read-only). */
   private _resolveHistory(): ChatMessage[] {

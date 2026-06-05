@@ -8,6 +8,7 @@ import type {
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";
+import type { Sandbox } from "./sandbox.js";
 
 export class Halo {
   private _adapter: ModelAdapter;
@@ -28,6 +29,8 @@ export class Halo {
     model?: ModelConfig;
     /** Agent Skills (agentskills.io). Name+description enter system prompt. */
     skills?: SkillMetadata[];
+    /** Sandbox for file ops and command execution. Does NOT enter prefix. */
+    sandbox?: Sandbox;
 
     context?: ContextStrategy;
     repair?: RepairStrategy;
@@ -42,6 +45,7 @@ export class Halo {
       fewShots: opts.fewShots,
       model: opts.model,
       skills: opts.skills,
+      sandbox: opts.sandbox,
       context: opts.context,
       repair: opts.repair,
       on: opts.on,
