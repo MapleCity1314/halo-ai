@@ -118,9 +118,15 @@ export class HaloAgentImpl {
           return `Skill "${skillName}" not found. Available: ${available}`;
         }
         try {
-          // @nodeOnly — uses Node.js fs
-          const { readFile } = await import("node:fs/promises");
-          const content = await readFile(`${skill.path}/SKILL.md`, "utf-8");
+          const skillPath = `${skill.path}/SKILL.md`;
+          let content: string;
+          if (this._sandbox) {
+            content = await this._sandbox.readFile(skillPath);
+          } else {
+            // @nodeOnly
+            const { readFile } = await import("node:fs/promises");
+            content = await readFile(skillPath, "utf-8");
+          }
           return stripFrontmatter(content);
         } catch (err) {
           return `Failed to load skill "${skillName}": ${String(err)}`;

@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import type { SkillMetadata } from "./session.js";
+import type { Sandbox } from "./sandbox.js";
 
 /**
  * Discover Agent Skills from a set of directories.
@@ -9,39 +10,49 @@ import type { SkillMetadata } from "./session.js";
  * deduplicated metadata (first skill with a given name wins — allows
  * project-level overrides).
  *
- * **@nodeOnly** — uses Node.js `fs` APIs. For cross-platform, pass
- * `SkillMetadata[]` manually to `halo.agent({ skills })`.
+ * When `sandbox` is provided, file operations use the sandbox abstraction
+ * instead of raw Node `fs` (enables cross-platform/browser usage).
+ * Without sandbox, falls back to `node:fs/promises` (**@nodeOnly**).
  *
  * @example
  * ```ts
  * const skills = await discoverSkills({
- *   directories: [".halo/skills", "~/.halo/skills"],
+ *   directories: [".halo/skills"],
+ *   sandbox: new VirtualSandbox(),
  * });
  * ```
  */
 export async function discoverSkills(opts: {
   directories: string[];
+  sandbox?: Sandbox;
 }): Promise<SkillMetadata[]> {
+  const sb = opts.sandbox;
   const skills: SkillMetadata[] = [];
   const seen = new Set<string>();
 
   for (const dir of opts.directories) {
-    let entries;
+    let entries: { name: string; isDirectory: boolean }[];
     try {
-      entries = await readdir(dir, { withFileTypes: true });
+      if (sb) {
+        entries = await sb.readdir(dir);
+      } else {
+        const raw = await readdir(dir, { withFileTypes: true });
+        entries = raw.map((e) => ({ name: e.name, isDirectory: e.isDirectory() }));
+      }
     } catch {
-      // Directory doesn't exist — skip silently.
       continue;
     }
 
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
+      if (!entry.isDirectory) continue;
 
       const skillDir = `${dir}/${entry.name}`.replace(/\/+/g, "/");
       const skillFile = `${skillDir}/SKILL.md`;
 
       try {
-        const content = await readFile(skillFile, "utf-8");
+        const content = sb
+          ? await sb.readFile(skillFile)
+          : await readFile(skillFile, "utf-8");
         const frontmatter = parseFrontmatter(content);
 
         if (!frontmatter.name || !frontmatter.description) continue;
