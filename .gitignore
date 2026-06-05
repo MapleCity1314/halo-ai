@@ -4,3 +4,8 @@ dist/
 .coverage/
 .turbo/
 .next/
+
+# Agent runtime artifacts (third-party skills fetched at install time)
+.agents/
+.reasonix/
+skills-lock.json
