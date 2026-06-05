@@ -1,0 +1,48 @@
+{
+  "name": "@halo-sdk/sandbox",
+  "version": "1.2.0",
+  "description": "Sandbox for Halo AI SDK — virtual and container filesystems with command execution",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "agent",
+    "sandbox",
+    "filesystem",
+    "halo-sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/halo-sdk/halo-ai",
+    "directory": "packages/sandbox"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@halo-sdk/core": "^1.2.0"
+  },
+  "devDependencies": {
+    "@halo-sdk/core": "workspace:*",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

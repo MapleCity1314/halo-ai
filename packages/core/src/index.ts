@@ -39,7 +39,4 @@ export type {
   ProcessHandle,
 } from "./sandbox.js";
 export { SandboxError } from "./sandbox.js";
-export { VirtualSandbox } from "./virtual-sandbox.js";
-export { ContainerSandbox } from "./container-sandbox.js";
-export type { ContainerConfig } from "./container-sandbox.js";
 export type { HaloAgentImpl } from "./session-impl.js";
