@@ -35,9 +35,21 @@ export class HaloAgent {
   }
 
   /**
-   * Run a prompt with automatic tool-call loop.
-   * This is the default entry point for 80% of use-cases.
+   * Generate a text response with automatic tool-call loop.
+   * This is the primary entry point for non-streaming use-cases.
    */
+  async generateText(
+    input: string,
+    opts?: {
+      maxSteps?: number;
+      onToolCall?: (call: ToolCall) => Promise<ToolResult>;
+      onStep?: (step: { step: number; content: string; toolCalls: ToolCall[] }) => void;
+    } & ModelCallOptions,
+  ): Promise<TurnResult> {
+    return this._impl.generateText(input, opts);
+  }
+
+  /** @deprecated Use `generateText()` instead. */
   async run(
     input: string,
     opts?: {
@@ -46,8 +58,15 @@ export class HaloAgent {
       onStep?: (step: { step: number; content: string; toolCalls: ToolCall[] }) => void;
     } & ModelCallOptions,
   ): Promise<TurnResult> {
-    return this._impl.run(input, opts);
+    return this._impl.generateText(input, opts);
   }
+
+  /**
+   * Send a single message. Tool calls are returned, NOT auto-executed.
+   * Use `submitToolResult()` to feed results back manually.
+   *
+   * For automatic tool loops, use `generateText()` or `streamText()` instead.
+   */
 
   /**
    * Send a message. Tool calls are returned, NOT automatically executed.

@@ -127,7 +127,7 @@ describe("HaloAgentImpl", () => {
 
   // --- run() with tool calls ---
 
-  it("run loops on tool calls", async () => {
+  it("generateText loops on tool calls", async () => {
     const adapter = createAdapter();
     let callCount = 0;
     adapter.chatFn = async () => {
@@ -141,7 +141,7 @@ describe("HaloAgentImpl", () => {
     const agent = createAgent(adapter);
     const steps: { step: number }[] = [];
 
-    const result = await agent.run("do it", {
+    const result = await agent.generateText("do it", {
       onToolCall: async () => ({ toolCallId: "call_1", output: "sunny" }),
       onStep: (s) => steps.push(s),
     });
@@ -153,7 +153,7 @@ describe("HaloAgentImpl", () => {
     expect(agent.stats.turns).toBe(2); // two model calls
   });
 
-  it("run stops at maxSteps", async () => {
+  it("generateText stops at maxSteps", async () => {
     const adapter = createAdapter();
     adapter.chatFn = async () => ({
       content: "",
@@ -162,7 +162,7 @@ describe("HaloAgentImpl", () => {
     });
 
     const agent = createAgent(adapter);
-    const result = await agent.run("do it", {
+    const result = await agent.generateText("do it", {
       maxSteps: 2,
       onToolCall: async () => ({ toolCallId: "call_1", output: "ok" }),
     });
@@ -171,7 +171,7 @@ describe("HaloAgentImpl", () => {
     expect(agent.stats.turns).toBe(3); // initial + 2 steps (2 tool rounds)
   });
 
-  it("run stops when no onToolCall provided", async () => {
+  it("generateText stops when no onToolCall provided", async () => {
     const adapter = createAdapter();
     adapter.chatFn = async () => ({
       content: "",
@@ -180,7 +180,7 @@ describe("HaloAgentImpl", () => {
     });
 
     const agent = createAgent(adapter);
-    const result = await agent.run("do it");
+    const result = await agent.generateText("do it");
 
     // No onToolCall -> tools not executed, loop stops after first call
     expect(result.toolCalls).toEqual([sampleToolCall]);

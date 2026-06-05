@@ -165,7 +165,7 @@ export class HaloAgentImpl {
     return this._stats;
   }
 
-  async run(
+  async generateText(
     input: string,
     opts?: {
       maxSteps?: number;
@@ -275,7 +275,7 @@ export class HaloAgentImpl {
 
     // If the agent has tools with auto-execute, use run() for full tool loop.
     if (this._toolExecutors.size > 0) {
-      const result = await this.run(lastMsg.content);
+      const result = await this.generateText(lastMsg.content);
       yield { type: "text-delta", delta: result.content };
       yield { type: "done", usage: result.usage };
       return;
