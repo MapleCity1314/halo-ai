@@ -115,9 +115,9 @@ describe("HaloAgentImpl", () => {
     await agent.send("hi");
 
     // Second send: history should contain [user:"hi", assistant:"Hello!", user:"next"]
-    adapter.chatFn = async (prefix, history) => {
+    adapter.chatFn = async (params) => {
       // The second-to-last history entry should be the previous assistant response
-      const assistant = history[history.length - 2];
+      const assistant = params.history[params.history.length - 2];
       expect(assistant!.role).toBe("assistant");
       expect(assistant!.content).toBe("Hello!");
       return { content: "ok", toolCalls: [], usage: defaultUsage };
@@ -240,10 +240,10 @@ describe("HaloAgentImpl", () => {
     await agent.send("first");
     agent.clearLog();
 
-    adapter.chatFn = async (prefix, history) => {
+    adapter.chatFn = async (params) => {
       // After clearLog, history has only the current user message, no prior assistant.
-      expect(prefix.length).toBe(1); // system
-      expect(history.length).toBe(1); // user:"second"
+      expect(params.prefix.length).toBe(1); // system
+      expect(params.history.length).toBe(1); // user:"second"
       return { content: "fresh", toolCalls: [], usage: defaultUsage };
     };
 

@@ -4,11 +4,10 @@ import type {
   ToolSpec,
   Usage,
   TurnChunk,
-  ResponseFormat,
   ModelAdapter,
   ModelCapabilities,
   PricingInfo,
-  ModelCallOptions,
+  ChatParams,
 } from "../src/index.js";
 /**
  * Mock adapter that returns pre-programmed responses.
@@ -29,44 +28,20 @@ export class MockAdapter implements ModelAdapter {
   };
 
   chatFn:
-    | ((
-        prefix: ChatMessage[],
-        history: ChatMessage[],
-        tools?: ToolSpec[],
-        responseFormat?: ResponseFormat,
-        options?: ModelCallOptions,
-      ) => Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>)
+    | ((params: ChatParams) => Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>)
     | null = null;
   streamFn:
-    | ((
-        prefix: ChatMessage[],
-        history: ChatMessage[],
-        tools?: ToolSpec[],
-        responseFormat?: ResponseFormat,
-        options?: ModelCallOptions,
-      ) => AsyncGenerator<TurnChunk>)
+    | ((params: ChatParams) => AsyncGenerator<TurnChunk>)
     | null = null;
 
-  async chat(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
-  ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
+  async chat(params: ChatParams): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
     if (!this.chatFn) throw new Error("MockAdapter.chat not configured");
-    return this.chatFn(prefix, history, tools, responseFormat, options);
+    return this.chatFn(params);
   }
 
-  async *stream(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
-  ): AsyncGenerator<TurnChunk> {
+  async *stream(params: ChatParams): AsyncGenerator<TurnChunk> {
     if (!this.streamFn) throw new Error("MockAdapter.stream not configured");
-    yield* this.streamFn(prefix, history, tools, responseFormat, options);
+    yield* this.streamFn(params);
   }
 }
 

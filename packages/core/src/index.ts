@@ -1,5 +1,5 @@
 export type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Role, Usage, ResponseFormat } from "./types.js";
-export type { ModelAdapter, ModelCapabilities, PricingInfo, ModelCallOptions } from "./model-adapter.js";
+export type { ModelAdapter, ModelCapabilities, PricingInfo, ModelCallOptions, ChatParams } from "./model-adapter.js";
 export type {
   ContextStrategy,
   RepairStrategy,

@@ -1,5 +1,5 @@
-import type { ChatMessage, ToolCall, ToolSpec, Usage, TurnChunk, ResponseFormat } from "@halo-sdk/core";
-import type { ModelAdapter, ModelCapabilities, PricingInfo, ModelCallOptions } from "@halo-sdk/core";
+import type { Usage, TurnChunk, ToolCall } from "@halo-sdk/core";
+import type { ModelAdapter, ModelCapabilities, PricingInfo, ChatParams, ModelCallOptions } from "@halo-sdk/core";
 
 export class DeepSeekAdapter implements ModelAdapter {
   readonly modelId: string;
@@ -25,16 +25,13 @@ export class DeepSeekAdapter implements ModelAdapter {
   }
 
   async chat(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
+    params: ChatParams,
   ): Promise<{
     content: string;
     toolCalls: ToolCall[];
     usage: Usage;
   }> {
+    const { prefix, history, tools, responseFormat, options } = params;
     const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
       model: this.modelId,
@@ -86,12 +83,9 @@ export class DeepSeekAdapter implements ModelAdapter {
   }
 
   async *stream(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
+    params: ChatParams,
   ): AsyncGenerator<TurnChunk> {
+    const { prefix, history, tools, responseFormat, options } = params;
     const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
       model: this.modelId,

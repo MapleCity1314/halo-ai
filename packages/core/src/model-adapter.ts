@@ -24,31 +24,22 @@ export interface ModelCallOptions {
 
 export { type ResponseFormat } from "./types.js";
 
+export interface ChatParams {
+  prefix: ChatMessage[];
+  history: ChatMessage[];
+  tools?: ToolSpec[];
+  responseFormat?: ResponseFormat;
+  options?: ModelCallOptions;
+}
+
 export interface ModelAdapter {
   /**
    * Send a chat request with separated stable prefix and dynamic history.
-   *
-   * The separation lets adapters apply provider-specific caching strategies:
-   * - DeepSeek / OpenAI-compatible: concat `[...prefix, ...history]` (prefix caching)
-   * - Anthropic: mark prefix messages with `cache_control` breakpoints
-   * - Gemini: use prefix to create/manage a `CachedContent` resource
    */
-  chat(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
-  ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>;
+  chat(params: ChatParams): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>;
 
   /** Stream variant with the same prefix/history separation. */
-  stream(
-    prefix: ChatMessage[],
-    history: ChatMessage[],
-    tools?: ToolSpec[],
-    responseFormat?: ResponseFormat,
-    options?: ModelCallOptions,
-  ): AsyncGenerator<TurnChunk>;
+  stream(params: ChatParams): AsyncGenerator<TurnChunk>;
 
   readonly modelId: string;
   readonly contextWindow: number;

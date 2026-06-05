@@ -227,7 +227,7 @@ export class HaloAgentImpl {
     const prefix = this._prefix.toMessages();
     const history = this._log.toFullHistory();
     const merged: ModelCallOptions = { ...this._modelDefaults, ...options };
-    yield* this._adapter.stream(prefix, history, this._prefix.tools(), undefined, merged);
+    yield* this._adapter.stream({ prefix, history, tools: this._prefix.tools(), options: merged });
   }
 
   async submitToolResult(result: ToolResult, options?: ModelCallOptions): Promise<TurnResult> {
@@ -328,13 +328,10 @@ export class HaloAgentImpl {
     if (this._keepAliveTimer) clearInterval(this._keepAliveTimer);
     this._keepAliveTimer = setInterval(() => {
       this._adapter
-        .chat(
-          this._prefix.toMessages(),
-          [{ role: "user", content: "ping" }],
-          undefined,
-          undefined,
-          undefined,
-        )
+        .chat({
+          prefix: this._prefix.toMessages(),
+          history: [{ role: "user", content: "ping" }],
+        })
         .catch(() => {
           /* keep-alive failure is silent */
         });
@@ -409,13 +406,12 @@ export class HaloAgentImpl {
         const history = this._resolveHistory();
         const tools = this._prefix.tools();
 
-        for await (const chunk of this._adapter.stream(
+        for await (const chunk of this._adapter.stream({
           prefix,
           history,
-          tools.length > 0 ? tools : undefined,
-          undefined,
-          merged,
-        )) {
+          tools: tools.length > 0 ? tools : undefined,
+          options: merged,
+        })) {
           if (chunk.type === "text-delta") {
             stepText += chunk.delta;
             fullText += chunk.delta;
@@ -513,13 +509,12 @@ export class HaloAgentImpl {
     const responseFormat = await convertToResponseFormat(schema);
     const merged: ModelCallOptions = { ...this._modelDefaults, ...callOptions };
 
-    const { content, usage } = await this._adapter.chat(
+    const { content, usage } = await this._adapter.chat({
       prefix,
       history,
-      undefined, // tools suppressed
       responseFormat,
-      merged,
-    );
+      options: merged,
+    });
 
     // Parse JSON from content.
     let object: T;
@@ -563,13 +558,12 @@ export class HaloAgentImpl {
 
     let fullContent = "";
 
-    for await (const chunk of this._adapter.stream(
+    for await (const chunk of this._adapter.stream({
       prefix,
       history,
-      undefined, // tools suppressed
       responseFormat,
-      merged,
-    )) {
+      options: merged,
+    })) {
       if (chunk.type === "text-delta") {
         fullContent += chunk.delta;
         // Attempt progressive JSON parse.
@@ -646,13 +640,12 @@ export class HaloAgentImpl {
 
     const merged: ModelCallOptions = { ...this._modelDefaults, ...options };
 
-    const { content, toolCalls, usage } = await this._adapter.chat(
+    const { content, toolCalls, usage } = await this._adapter.chat({
       prefix,
       history,
-      tools.length > 0 ? tools : undefined,
-      undefined, // responseFormat
-      merged,
-    );
+      tools: tools.length > 0 ? tools : undefined,
+      options: merged,
+    });
 
     // Apply repair.
     let repairedCalls = toolCalls;

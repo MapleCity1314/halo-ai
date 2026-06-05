@@ -68,7 +68,7 @@ describe("DeepSeekAdapter", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    adapter.chat([], []);
+    adapter.chat({ prefix: [], history: [] });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.deepseek.com/chat/completions",
       expect.anything(),
@@ -93,10 +93,10 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    const result = await adapter.chat(
-      [{ role: "system", content: "Be helpful." }],
-      [{ role: "user", content: "Hi" }],
-    );
+    const result = await adapter.chat({
+      prefix: [{ role: "system", content: "Be helpful." }],
+      history: [{ role: "user", content: "Hi" }],
+    });
 
     expect(result.content).toBe("Hello from DeepSeek!");
     expect(result.toolCalls).toEqual([]);
@@ -112,7 +112,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    const result = await adapter.chat([], []);
+    const result = await adapter.chat({ prefix: [], history: [] });
 
     expect(result.content).toBe("");
     expect(result.toolCalls).toEqual([]);
@@ -141,7 +141,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    const result = await adapter.chat([], []);
+    const result = await adapter.chat({ prefix: [], history: [] });
 
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls[0]!.id).toBe("call_1");
@@ -164,7 +164,7 @@ describe("DeepSeekAdapter", () => {
         function: { name: "search", description: "search the web", parameters: [] },
       },
     ];
-    await adapter.chat([], [], tools);
+    await adapter.chat({ prefix: [], history: [], tools });
 
     const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
     expect(body.tools).toEqual(tools);
@@ -175,7 +175,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    await expect(adapter.chat([], [])).rejects.toThrow("DeepSeek 500:");
+    await expect(adapter.chat({ prefix: [], history: [] })).rejects.toThrow("DeepSeek 500:");
   });
 
   it("chat() sends messages from prefix + history concatenated", async () => {
@@ -188,7 +188,7 @@ describe("DeepSeekAdapter", () => {
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
     const prefix = [{ role: "system" as const, content: "You are helpful." }];
     const history = [{ role: "user" as const, content: "Hello" }];
-    await adapter.chat(prefix, history);
+    await adapter.chat({ prefix, history });
 
     const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
     expect(body.messages).toHaveLength(2);
@@ -204,7 +204,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    const result = await adapter.chat([], []);
+    const result = await adapter.chat({ prefix: [], history: [] });
     expect(result.usage.caching!.hitRate).toBe(0);
   });
 
@@ -220,7 +220,7 @@ describe("DeepSeekAdapter", () => {
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
     const chunks: unknown[] = [];
-    for await (const chunk of adapter.stream([], [])) {
+    for await (const chunk of adapter.stream({ prefix: [], history: [] })) {
       chunks.push(chunk);
     }
 
@@ -240,7 +240,7 @@ describe("DeepSeekAdapter", () => {
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
     const chunks: unknown[] = [];
-    for await (const chunk of adapter.stream([], [])) {
+    for await (const chunk of adapter.stream({ prefix: [], history: [] })) {
       chunks.push(chunk);
     }
 
@@ -266,7 +266,7 @@ describe("DeepSeekAdapter", () => {
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
     const chunks: unknown[] = [];
-    for await (const chunk of adapter.stream([], [])) {
+    for await (const chunk of adapter.stream({ prefix: [], history: [] })) {
       chunks.push(chunk);
     }
 
@@ -288,7 +288,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    const it = adapter.stream([], []);
+    const it = adapter.stream({ prefix: [], history: [] });
     await expect(it.next()).rejects.toThrow("DeepSeek 401:");
   });
 
@@ -303,7 +303,7 @@ describe("DeepSeekAdapter", () => {
         function: { name: "search", description: "search the web", parameters: [] },
       },
     ];
-    const it = adapter.stream([], [], tools);
+    const it = adapter.stream({ prefix: [], history: [], tools });
     // consume the generator
     for await (const _ of it) {
       /* drain */
@@ -318,7 +318,7 @@ describe("DeepSeekAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
-    for await (const _ of adapter.stream([], [])) {
+    for await (const _ of adapter.stream({ prefix: [], history: [] })) {
       /* drain */
     }
 
@@ -338,7 +338,7 @@ describe("DeepSeekAdapter", () => {
 
     const adapter = new DeepSeekAdapter({ apiKey: "sk-test" });
     const chunks: unknown[] = [];
-    for await (const chunk of adapter.stream([], [])) {
+    for await (const chunk of adapter.stream({ prefix: [], history: [] })) {
       chunks.push(chunk);
     }
 
