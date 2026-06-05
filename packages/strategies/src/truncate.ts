@@ -27,21 +27,42 @@ export class TruncateStrategy implements ContextStrategy {
       return { history, modified: false, droppedCount: 0 };
     }
 
-    // Keep the most recent messages that fit the remaining budget.
-    let tailTokens = 0;
-    const tail: ChatMessage[] = [];
+    // Prefer keeping non-discardable messages. Discardable messages
+    // (e.g. loadSkill results) are the first to go when truncating.
+    const budgetLimit = budgetChars * 0.9;
+
+    // Pass 1: keep non-discardable, newest first.
+    const kept: ChatMessage[] = [];
+    let keptTokens = 0;
     for (let i = history.length - 1; i >= 0; i--) {
       const msg = history[i]!;
+      if (msg.discardable) continue;
       const size = msg.content.length;
-      if (tailTokens + size > budgetChars * 0.9) break;
-      tailTokens += size;
-      tail.unshift(msg);
+      if (keptTokens + size > budgetLimit) break;
+      keptTokens += size;
+      kept.unshift(msg);
     }
 
-    const droppedCount = history.length - tail.length;
+    // Pass 2: backfill discardable messages if budget remains.
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i]!;
+      if (!msg.discardable) continue;
+      const size = msg.content.length;
+      if (keptTokens + size > budgetLimit) break;
+      keptTokens += size;
+      // Insert in chronological order.
+      const insertIdx = kept.findIndex(
+        (m, idx) =>
+          idx === kept.length - 1 ||
+          history.indexOf(m) > history.indexOf(msg),
+      );
+      kept.splice(insertIdx === -1 ? kept.length : insertIdx, 0, msg);
+    }
+
+    const droppedCount = history.length - kept.length;
 
     return {
-      history: tail,
+      history: kept,
       modified: droppedCount > 0,
       droppedCount,
     };

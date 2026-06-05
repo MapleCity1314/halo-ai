@@ -196,6 +196,7 @@ export class HaloAgentImpl {
             role: "tool",
             tool_call_id: call.id,
             content: output,
+            discardable: call.function.name === "loadSkill",
           });
         } else if (onToolCall) {
           const r = await onToolCall(call);
@@ -450,7 +451,12 @@ export class HaloAgentImpl {
                 parsed = {};
               }
               const output = await executor(parsed);
-              this._log.append({ role: "tool", tool_call_id: call.id, content: output });
+              this._log.append({
+                role: "tool",
+                tool_call_id: call.id,
+                content: output,
+                discardable: call.function.name === "loadSkill",
+              });
             } else if (onToolCall) {
               const r = await onToolCall(call);
               this._log.append({

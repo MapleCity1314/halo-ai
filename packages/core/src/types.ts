@@ -8,6 +8,8 @@ export interface ChatMessage {
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
+  /** Hint to ContextStrategy: this message can be dropped first when truncating. */
+  discardable?: boolean;
 }
 
 /** A tool call requested by the model. */
