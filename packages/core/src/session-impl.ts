@@ -794,20 +794,24 @@ async function convertToResponseFormat(schema: any): Promise<ResponseFormat> {
 // ── StreamTextResult implementation ──
 
 /**
- * Wraps an AsyncGenerator<TurnChunk> as a multi-consumer StreamTextResult.
+ * Wraps an AsyncGenerator<TurnChunk> as a lazy, single-consumer
+ * StreamTextResult. The generator is NOT consumed until the first
+ * `.to*()` call or `.text`/`.usage` access drives the stream.
  *
- * The generator is consumed eagerly and chunks are buffered. Each .to*()
- * produces an independent ReadableStream from the buffer, enabling multiple
- * consumers without stream-lock conflicts.
+ * Internally uses `ReadableStream.tee()` to split the stream into a
+ * consumer branch (returned to the user) and an accumulator branch
+ * (drained in the background to fulfill the text/usage promises).
+ * Pick one consumption path — `toDataStream`, `toReadableStream`,
+ * or `toAsyncIterable`. They share the same underlying source;
+ * calling more than one will fail with a locked-stream error.
  */
 class StreamTextResultImpl implements StreamTextResult {
-  private _chunks: TurnChunk[] = [];
+  private _source: AsyncGenerator<TurnChunk>;
+  private _started = false;
   private _text = "";
   private _usage: Usage = { promptTokens: 0, completionTokens: 0 };
   private _textResolve!: (value: string) => void;
   private _usageResolve!: (value: Usage) => void;
-  private _ready = false;
-  private _error: Error | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _listeners = new Map<string, Set<(payload: any) => void>>();
 
@@ -815,38 +819,18 @@ class StreamTextResultImpl implements StreamTextResult {
   usage: Promise<Usage>;
 
   constructor(source: AsyncGenerator<TurnChunk>) {
+    this._source = source;
     this.text = new Promise((r) => (this._textResolve = r));
     this.usage = new Promise((r) => (this._usageResolve = r));
-
-    // Consume eagerly into buffer.
-    this._consume(source);
   }
 
   // ── Public ──
 
   toDataStream(opts?: { headers?: Record<string, string> }): Response {
-    const stream = new ReadableStream({
-      start: (controller) => {
-        const encoder = new TextEncoder();
-        for (const chunk of this._chunks) {
-          switch (chunk.type) {
-            case "text-delta":
-              controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.delta)}\n`));
-              break;
-            case "tool-call-delta":
-            case "tool-call-ready":
-              controller.enqueue(encoder.encode(`9:${JSON.stringify([chunk])}\n`));
-              break;
-            case "done":
-              controller.enqueue(
-                encoder.encode(`d:${JSON.stringify({ usage: chunk.usage })}\n`),
-              );
-              break;
-          }
-        }
-        controller.close();
-      },
-    });
+    const [consumer, accumulator] = this._createStream().tee();
+    this._drain(accumulator);
+
+    const stream = this._encodeSSE(consumer);
 
     return new Response(stream, {
       headers: {
@@ -859,21 +843,38 @@ class StreamTextResultImpl implements StreamTextResult {
   }
 
   toReadableStream(): ReadableStream<Uint8Array> {
-    const chunks = this._chunks;
-    return new ReadableStream<Uint8Array>({
-      start(controller) {
-        const encoder = new TextEncoder();
-        for (const chunk of chunks) {
-          controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
-        }
-        controller.close();
-      },
-    });
+    const [consumer, accumulator] = this._createStream().tee();
+    this._drain(accumulator);
+    return consumer;
   }
 
   async *toAsyncIterable(): AsyncIterable<TurnChunk> {
-    for (const chunk of this._chunks) {
-      yield chunk;
+    const [consumer, accumulator] = this._createStream().tee();
+    this._drain(accumulator);
+
+    const reader = consumer.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            yield JSON.parse(trimmed) as any;
+          } catch {
+            /* skip malformed */
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
     }
   }
 
@@ -900,25 +901,126 @@ class StreamTextResultImpl implements StreamTextResult {
 
   // ── Private ──
 
-  private async _consume(source: AsyncGenerator<TurnChunk>): Promise<void> {
-    try {
-      for await (const chunk of source) {
-        this._chunks.push(chunk);
-        if (chunk.type === "text-delta") {
-          this._text += chunk.delta;
-        } else if (chunk.type === "done") {
-          this._usage = chunk.usage;
-        }
-        this._emit(chunk.type, chunk);
-      }
-    } catch (err) {
-      this._error = err instanceof Error ? err : new Error(String(err));
-      throw this._error;
-    } finally {
-      this._ready = true;
-      this._textResolve(this._text);
-      this._usageResolve(this._usage);
+  /**
+   * Create the underlying ReadableStream on first access (lazy).
+   * Accumulation of text/usage and event emissions happen inline
+   * during stream consumption.
+   */
+  private _createStream(): ReadableStream<Uint8Array> {
+    if (this._started) {
+      throw new Error(
+        "StreamTextResult can only be consumed once. " +
+          "Pick one: toDataStream(), toReadableStream(), or toAsyncIterable().",
+      );
     }
+    this._started = true;
+
+    const self = this;
+    const source = this._source;
+    return new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of source) {
+            // Accumulate text/usage inline.
+            if (chunk.type === "text-delta") {
+              self._text += chunk.delta;
+            } else if (chunk.type === "done") {
+              self._usage = chunk.usage;
+            }
+            // Notify .on() listeners.
+            self._emit(chunk.type, chunk);
+            // Push serialized chunk to the stream.
+            controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
+          }
+          self._textResolve(self._text);
+          self._usageResolve(self._usage);
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+    });
+  }
+
+  /**
+   * Drain a tee'd branch in the background so text/usage promises
+   * resolve even when the user discards the accumulator.
+   */
+  private _drain(stream: ReadableStream<Uint8Array>): void {
+    const reader = stream.getReader();
+    // Fire-and-forget — errors surface via the main consumer.
+    void (async () => {
+      try {
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      } catch {
+        /* drain errors are silent */
+      }
+    })();
+  }
+
+  /**
+   * Convert a ReadableStream of JSON-line-encoded TurnChunks
+   * into SSE format (AI SDK compatible).
+   */
+  private _encodeSSE(source: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        const reader = source.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        const pump = async () => {
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+              const lines = buf.split("\n");
+              buf = lines.pop() ?? "";
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const chunk: any = JSON.parse(trimmed);
+                  switch (chunk.type) {
+                    case "text-delta":
+                      controller.enqueue(
+                        encoder.encode(`0:${JSON.stringify(chunk.delta)}\n`),
+                      );
+                      break;
+                    case "tool-call-delta":
+                    case "tool-call-ready":
+                      controller.enqueue(
+                        encoder.encode(`9:${JSON.stringify([chunk])}\n`),
+                      );
+                      break;
+                    case "done":
+                      controller.enqueue(
+                        encoder.encode(
+                          `d:${JSON.stringify({ usage: chunk.usage })}\n`,
+                        ),
+                      );
+                      break;
+                  }
+                } catch {
+                  /* skip malformed JSON */
+                }
+              }
+            }
+          } catch (err) {
+            controller.error(err);
+            return;
+          }
+          controller.close();
+        };
+        pump();
+      },
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
