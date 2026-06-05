@@ -121,6 +121,29 @@ export class DeepSeekAdapter implements ModelAdapter {
     const decoder = new TextDecoder();
     let buffer = "";
 
+    // Accumulate streaming tool-call deltas → emit tool-call-ready when complete.
+    const tcBuilder = new Map<
+      number,
+      { name: string; arguments: string; id: string }
+    >();
+
+    const flushToolCalls = async function* () {
+      for (const [index, tc] of tcBuilder) {
+        if (tc.name) {
+          yield {
+            type: "tool-call-ready" as const,
+            index,
+            call: {
+              id: tc.id || `call_${index}`,
+              type: "function" as const,
+              function: { name: tc.name, arguments: tc.arguments },
+            },
+          };
+        }
+      }
+      tcBuilder.clear();
+    };
+
     try {
       while (true) {
         const { value, done } = await reader.read();
@@ -134,7 +157,11 @@ export class DeepSeekAdapter implements ModelAdapter {
           if (!trimmed || !trimmed.startsWith("data: ")) continue;
           const data = trimmed.slice(6);
           if (data === "[DONE]") {
-            yield { type: "done", usage: { promptTokens: 0, completionTokens: 0 } };
+            yield* flushToolCalls();
+            yield {
+              type: "done",
+              usage: { promptTokens: 0, completionTokens: 0 },
+            };
             return;
           }
           try {
@@ -142,17 +169,38 @@ export class DeepSeekAdapter implements ModelAdapter {
             const json: any = JSON.parse(data);
             const delta = json.choices?.[0]?.delta;
             if (delta?.content) {
-              yield { type: "text-delta", delta: String(delta.content) };
+              yield {
+                type: "text-delta",
+                delta: String(delta.content),
+              };
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const toolCalls: any[] | undefined = delta?.tool_calls;
             if (toolCalls) {
               for (let i = 0; i < toolCalls.length; i++) {
                 const tc = toolCalls[i]!;
+                const idx = typeof tc.index === "number" ? tc.index : i;
+                const existing = tcBuilder.get(idx) ?? {
+                  name: "",
+                  arguments: "",
+                  id: tc.id ?? `call_${idx}`,
+                };
+                if (tc.function?.name) existing.name = String(tc.function.name);
+                if (tc.function?.arguments) {
+                  existing.arguments += String(tc.function.arguments);
+                }
+                if (tc.id) existing.id = tc.id;
+                tcBuilder.set(idx, existing);
+
                 yield {
                   type: "tool-call-delta",
-                  index: typeof tc.index === "number" ? tc.index : i,
-                  name: tc.function ? String(tc.function.name ?? "") : undefined,
-                  argumentsDelta: tc.function ? String(tc.function.arguments ?? "") : undefined,
+                  index: idx,
+                  name: tc.function
+                    ? String(tc.function.name ?? "")
+                    : undefined,
+                  argumentsDelta: tc.function
+                    ? String(tc.function.arguments ?? "")
+                    : undefined,
                 };
               }
             }
@@ -162,7 +210,13 @@ export class DeepSeekAdapter implements ModelAdapter {
               const completionTokens = usageRaw.completion_tokens ?? 0;
               const cacheHit = usageRaw.prompt_cache_hit_tokens ?? 0;
               const cacheMiss =
-                usageRaw.prompt_cache_miss_tokens ?? Math.max(0, promptTokens - cacheHit);
+                usageRaw.prompt_cache_miss_tokens ??
+                Math.max(0, promptTokens - cacheHit);
+
+              // Emit tool-call-ready for all accumulated tool calls
+              // before the final done chunk.
+              yield* flushToolCalls();
+
               yield {
                 type: "done",
                 usage: {
@@ -171,7 +225,10 @@ export class DeepSeekAdapter implements ModelAdapter {
                   caching: {
                     hitTokens: cacheHit,
                     missTokens: cacheMiss,
-                    hitRate: cacheHit + cacheMiss > 0 ? cacheHit / (cacheHit + cacheMiss) : 0,
+                    hitRate:
+                      cacheHit + cacheMiss > 0
+                        ? cacheHit / (cacheHit + cacheMiss)
+                        : 0,
                   },
                 },
               };
@@ -181,6 +238,9 @@ export class DeepSeekAdapter implements ModelAdapter {
           }
         }
       }
+
+      // Stream ended without an explicit usage chunk.
+      yield* flushToolCalls();
     } finally {
       reader.releaseLock();
     }

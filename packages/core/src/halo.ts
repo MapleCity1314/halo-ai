@@ -65,11 +65,15 @@ export class Halo {
     fewShots?: ChatMessage[];
     model?: ModelConfig;
     userMessages: ChatMessage[];
-    skills?: unknown[];
+    skills?: SkillMetadata[];
   } & StreamTextOptions): StreamTextResult {
-    const { userMessages, skills: _skills, ...agentOpts } = opts;
+    const { userMessages, skills, ...agentOpts } = opts;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const agent = new HaloAgent(agentOpts as any);
+    const agent = new HaloAgent({
+      adapter: this._adapter,
+      skills,
+      ...agentOpts,
+    } as any);
     return agent.streamText(userMessages, opts);
   }
 }

@@ -230,7 +230,7 @@ describe("DeepSeekAdapter", () => {
     expect(chunks[2]).toEqual({ type: "done", usage: { promptTokens: 0, completionTokens: 0 } });
   });
 
-  it("stream() yields tool-call-delta chunks", async () => {
+  it("stream() yields tool-call-delta and tool-call-ready chunks", async () => {
     const fetchMock = mockStreamFetch([
       'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"get_weather","arguments":"{\\"ci"}}]}}]}\n\n',
       'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"ty\\":\\"Beijing\\"}"}}]}}]}\n\n',
@@ -244,9 +244,18 @@ describe("DeepSeekAdapter", () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toHaveLength(3);
+    // 2 tool-call-delta + 1 tool-call-ready (assembled) + 1 done = 4
+    expect(chunks).toHaveLength(4);
     expect(chunks[0]).toMatchObject({ type: "tool-call-delta", index: 0, name: "get_weather" });
     expect(chunks[1]).toMatchObject({ type: "tool-call-delta", index: 0 });
+
+    const ready = chunks[2] as { type: string; call: { function: { name: string; arguments: string } } };
+    expect(ready.type).toBe("tool-call-ready");
+    expect(ready.call.function.name).toBe("get_weather");
+    expect(ready.call.function.arguments).toBe('{"city":"Beijing"}');
+
+    const done = chunks[3] as { type: string };
+    expect(done.type).toBe("done");
   });
 
   it("stream() yields usage in done chunk when present", async () => {
