@@ -1,6 +1,6 @@
 {
   "name": "@halo-sdk/strategies",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pluggable strategies for Halo AI SDK — context window truncation and JSON repair",
   "keywords": [
     "ai",
@@ -45,6 +45,6 @@
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@halo-sdk/core": ">=1.0.0"
+    "@halo-sdk/core": ">=1.0.1"
   }
 }

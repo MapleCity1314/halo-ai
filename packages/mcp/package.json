@@ -1,6 +1,6 @@
 {
   "name": "@halo-sdk/mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP (Model Context Protocol) integration for Halo AI SDK — connect to MCP servers and use their tools with cache-first agents",
   "keywords": [
     "agent",
@@ -47,7 +47,7 @@
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@halo-sdk/core": "^1.1.0",
+    "@halo-sdk/core": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.0.0"
   }
 }

@@ -1,13 +1,9 @@
-# @halo-sdk/core
+# @halo-sdk/sandbox
 
-## 1.0.1
+## 1.2.1
 
 ### Patch Changes
 
 - Switch build system from tsc to tsup with ESM+CJS dual format. Add clean and publint scripts. No API changes.
-
-## 1.0.0
-
-### Major Changes
-
-- first version for halo ai sdk
+- Updated dependencies
+  - @halo-sdk/core@1.0.1

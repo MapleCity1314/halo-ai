@@ -1,6 +1,6 @@
 {
   "name": "@halo-sdk/stream",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Streaming utilities for Halo AI SDK — SSE Response for Vercel AI SDK compatibility",
   "keywords": [
     "ai",
@@ -45,6 +45,6 @@
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@halo-sdk/core": ">=1.0.0"
+    "@halo-sdk/core": ">=1.0.1"
   }
 }

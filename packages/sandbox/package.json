@@ -1,6 +1,6 @@
 {
   "name": "@halo-sdk/sandbox",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Sandbox for Halo AI SDK — virtual and container filesystems with command execution",
   "keywords": [
     "agent",
@@ -46,6 +46,6 @@
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@halo-sdk/core": "^1.2.0"
+    "@halo-sdk/core": "^1.0.1"
   }
 }

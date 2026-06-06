@@ -1,6 +1,6 @@
 {
   "name": "@halo-sdk/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Core types, factory, and session management for Halo AI SDK — cache-aware agent with automatic tool-call loop",
   "keywords": [
     "agent",
