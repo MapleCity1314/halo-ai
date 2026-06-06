@@ -1,12 +1,25 @@
 {
   "name": "halo-ai",
   "private": true,
-  "type": "module",
+  "keywords": [
+    "agent",
+    "ai",
+    "cache-first",
+    "deepseek",
+    "llm"
+  ],
+  "homepage": "https://github.com/halo-sdk/halo-ai#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/halo-sdk/halo-ai"
+  },
   "workspaces": [
     "packages/*",
     "examples/*",
     "docs"
   ],
+  "type": "module",
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -23,32 +36,31 @@
     "docs:dev": "pnpm --filter @halo-sdk/docs dev",
     "docs:build": "pnpm --filter @halo-sdk/docs build",
     "example:dev": "pnpm --filter @example/next-halo dev",
-    "setup": "pnpm install && pnpm build"
+    "setup": "pnpm install && pnpm build",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
     "@types/node": "^22.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "turbo": "^2.0.0",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "oxfmt --write",
+      "oxlint"
+    ],
+    "*.{json,md}": [
+      "oxfmt --write"
+    ]
+  },
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "pnpm@10.33.0",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/halo-sdk/halo-ai"
-  },
-  "homepage": "https://github.com/halo-sdk/halo-ai#readme",
-  "keywords": [
-    "ai",
-    "llm",
-    "deepseek",
-    "cache-first",
-    "agent"
-  ]
+  "packageManager": "pnpm@10.33.0"
 }

@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "no-unused-vars": "error",
+    "no-duplicate-imports": "error",
+    "import/first": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": ["error", { "preferInline": true }],
+    "import/no-mutable-exports": "error",
+    "typescript/consistent-type-imports": "error"
+  },
+  "ignorePatterns": [
+    "**/*.html",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.mjs",
+    "**/__fixtures__/**",
+    "**/__snapshots__/**",
+    "**/tsconfig*.json",
+    "**/turbo.json",
+    "dist/**",
+    "node_modules/**",
+    ".next/**",
+    ".turbo/**"
+  ]
+}
