@@ -56,8 +56,7 @@ Date and time utilities. Operations:
         },
         value: {
           type: "string",
-          description:
-            "Date string for parse/convert operations (ISO 8601 preferred).",
+          description: "Date string for parse/convert operations (ISO 8601 preferred).",
         },
         tz: {
           type: "string",

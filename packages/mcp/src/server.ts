@@ -31,9 +31,7 @@ interface MCPClient {
   readResource(params: {
     uri: string;
   }): Promise<{ contents: { uri: string; mimeType?: string; text?: string; blob?: string }[] }>;
-  listPrompts(params?: {
-    cursor?: string;
-  }): Promise<{ prompts: unknown[]; nextCursor?: string }>;
+  listPrompts(params?: { cursor?: string }): Promise<{ prompts: unknown[]; nextCursor?: string }>;
   getPrompt(params: {
     name: string;
     arguments?: Record<string, unknown>;
@@ -83,17 +81,12 @@ export async function createMCPServer(config: {
     );
   }
 
-  const client: MCPClient = new Client(
-    { name: clientName, version },
-    { capabilities: {} },
-  );
+  const client: MCPClient = new Client({ name: clientName, version }, { capabilities: {} });
 
   // Create transport.
   if (config.transport.type === "stdio") {
     try {
-      const stdioMod = await import(
-        "@modelcontextprotocol/sdk/client/stdio"
-      );
+      const stdioMod = await import("@modelcontextprotocol/sdk/client/stdio");
       const StdioTransport = stdioMod.StdioClientTransport;
       transportImpl = new StdioTransport({
         command: config.transport.command,
@@ -108,14 +101,10 @@ export async function createMCPServer(config: {
     }
   } else if (config.transport.type === "sse") {
     try {
-      const sseMod = await import(
-        "@modelcontextprotocol/sdk/client/sse"
-      );
+      const sseMod = await import("@modelcontextprotocol/sdk/client/sse");
       const SSETransport = sseMod.SSEClientTransport;
       transportImpl = new SSETransport(new URL(config.transport.url), {
-        requestInit: config.transport.headers
-          ? { headers: config.transport.headers }
-          : undefined,
+        requestInit: config.transport.headers ? { headers: config.transport.headers } : undefined,
       });
     } catch {
       throw new Error(
@@ -162,9 +151,7 @@ export async function createMCPServer(config: {
       return result;
     },
 
-    async listResources(
-      params?: PaginatedRequestParams,
-    ): Promise<ListResourcesResult> {
+    async listResources(params?: PaginatedRequestParams): Promise<ListResourcesResult> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = await client.listResources(params as any);
       return raw as unknown as ListResourcesResult;
@@ -175,18 +162,13 @@ export async function createMCPServer(config: {
       return raw as ReadResourceResult;
     },
 
-    async listPrompts(
-      params?: PaginatedRequestParams,
-    ): Promise<ListPromptsResult> {
+    async listPrompts(params?: PaginatedRequestParams): Promise<ListPromptsResult> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = await client.listPrompts(params as any);
       return raw as unknown as ListPromptsResult;
     },
 
-    async getPrompt(
-      name: string,
-      args?: Record<string, unknown>,
-    ): Promise<GetPromptResult> {
+    async getPrompt(name: string, args?: Record<string, unknown>): Promise<GetPromptResult> {
       const raw = await client.getPrompt({ name, arguments: args });
       return {
         messages: raw.messages.map((m: { role: string; content: unknown }) => ({

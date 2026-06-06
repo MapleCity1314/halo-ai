@@ -1,3 +1,4 @@
+import type { ChatMessage } from "@halo-sdk/core";
 import { createWeatherAgent } from "@/agent/weather-agent";
 
 /**
@@ -13,10 +14,6 @@ import { createWeatherAgent } from "@/agent/weather-agent";
  * ── Cache model ──
  *   StablePrefix (cached):     system prompt + get_weather spec
  *   MessageLog (uncached):     conversation history from useChat
- *
- * streamText replaces the deprecated sdkStream() — it supports
- * named callbacks (onFinish, onError) and returns StreamTextResult
- * with multiple consumption paths.
  */
 export async function POST(req: Request) {
   const { messages } = (await req.json()) as {
@@ -26,7 +23,7 @@ export async function POST(req: Request) {
   const agent = createWeatherAgent();
 
   return agent
-    .streamText(messages, {
+    .streamText(messages as ChatMessage[], {
       maxSteps: 10,
       onFinish: ({ steps, usage }) => {
         console.log(

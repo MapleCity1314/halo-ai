@@ -73,10 +73,7 @@ export interface MCPServerConnection {
   listPrompts(params?: PaginatedRequestParams): Promise<ListPromptsResult>;
 
   /** Get a prompt by name (optional slot). */
-  getPrompt(
-    name: string,
-    args?: Record<string, unknown>,
-  ): Promise<GetPromptResult>;
+  getPrompt(name: string, args?: Record<string, unknown>): Promise<GetPromptResult>;
 
   /** Server metadata from the initialize handshake. */
   serverInfo: { name: string; version: string };

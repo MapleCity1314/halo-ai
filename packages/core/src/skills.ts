@@ -50,9 +50,7 @@ export async function discoverSkills(opts: {
       const skillFile = `${skillDir}/SKILL.md`;
 
       try {
-        const content = sb
-          ? await sb.readFile(skillFile)
-          : await readFile(skillFile, "utf-8");
+        const content = sb ? await sb.readFile(skillFile) : await readFile(skillFile, "utf-8");
         const frontmatter = parseFrontmatter(content);
 
         if (!frontmatter.name || !frontmatter.description) continue;

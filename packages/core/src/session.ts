@@ -147,12 +147,7 @@ export interface StreamTextCallbacks {
     usage: Usage;
     step: number;
   }) => void;
-  onFinish?: (event: {
-    text: string;
-    usage: Usage;
-    steps: number;
-    toolCalls: ToolCall[];
-  }) => void;
+  onFinish?: (event: { text: string; usage: Usage; steps: number; toolCalls: ToolCall[] }) => void;
   onError?: (error: Error) => void;
 }
 
@@ -185,10 +180,7 @@ export interface StreamTextResult {
   text: Promise<string>;
   usage: Promise<Usage>;
 
-  on(
-    event: "text-delta",
-    fn: (payload: TurnChunk & { type: "text-delta" }) => void,
-  ): () => void;
+  on(event: "text-delta", fn: (payload: TurnChunk & { type: "text-delta" }) => void): () => void;
   on(
     event: "tool-call-delta",
     fn: (payload: TurnChunk & { type: "tool-call-delta" }) => void,
@@ -197,8 +189,5 @@ export interface StreamTextResult {
     event: "tool-call-ready",
     fn: (payload: TurnChunk & { type: "tool-call-ready" }) => void,
   ): () => void;
-  on(
-    event: "done",
-    fn: (payload: TurnChunk & { type: "done" }) => void,
-  ): () => void;
+  on(event: "done", fn: (payload: TurnChunk & { type: "done" }) => void): () => void;
 }

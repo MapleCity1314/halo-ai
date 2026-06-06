@@ -52,9 +52,7 @@ export class TruncateStrategy implements ContextStrategy {
       keptTokens += size;
       // Insert in chronological order.
       const insertIdx = kept.findIndex(
-        (m, idx) =>
-          idx === kept.length - 1 ||
-          history.indexOf(m) > history.indexOf(msg),
+        (m, idx) => idx === kept.length - 1 || history.indexOf(m) > history.indexOf(msg),
       );
       kept.splice(insertIdx === -1 ? kept.length : insertIdx, 0, msg);
     }

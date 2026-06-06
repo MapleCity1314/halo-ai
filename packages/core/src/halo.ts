@@ -1,10 +1,5 @@
 import { HaloAgent } from "./halo-agent.js";
-import type {
-  HaloAgentOptions,
-  AgentEvent,
-  ModelConfig,
-  SkillMetadata,
-} from "./session.js";
+import type { HaloAgentOptions, AgentEvent, ModelConfig, SkillMetadata } from "./session.js";
 import type { ModelAdapter } from "./model-adapter.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 import type { ToolSpec, ChatMessage, ToolDefinition } from "./types.js";

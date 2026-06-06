@@ -16,17 +16,10 @@ export interface Sandbox {
   exists(path: string): Promise<boolean>;
 
   /** Execute a command with structured arguments (no shell). */
-  exec?(
-    command: string,
-    args: string[],
-    opts?: ExecOptions,
-  ): Promise<ExecResult>;
+  exec?(command: string, args: string[], opts?: ExecOptions): Promise<ExecResult>;
 
   /** Execute a shell command string. Requires `allowShell: true`. */
-  execShell?(
-    command: string,
-    opts?: ExecShellOptions,
-  ): Promise<ExecResult>;
+  execShell?(command: string, opts?: ExecShellOptions): Promise<ExecResult>;
 
   /** Kill all background processes and clean up. Idempotent. */
   dispose(): Promise<void>;

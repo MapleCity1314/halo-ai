@@ -249,7 +249,10 @@ describe("DeepSeekAdapter", () => {
     expect(chunks[0]).toMatchObject({ type: "tool-call-delta", index: 0, name: "get_weather" });
     expect(chunks[1]).toMatchObject({ type: "tool-call-delta", index: 0 });
 
-    const ready = chunks[2] as { type: string; call: { function: { name: string; arguments: string } } };
+    const ready = chunks[2] as {
+      type: string;
+      call: { function: { name: string; arguments: string } };
+    };
     expect(ready.type).toBe("tool-call-ready");
     expect(ready.call.function.name).toBe("get_weather");
     expect(ready.call.function.arguments).toBe('{"city":"Beijing"}');
@@ -273,9 +276,9 @@ describe("DeepSeekAdapter", () => {
     const done = chunks.find((c) => (c as { type: string }).type === "done");
     expect(done).toBeDefined();
     expect((done as { usage: { promptTokens: number } }).usage.promptTokens).toBe(100);
-    expect(
-      (done as { usage: { caching: { hitTokens: number } } }).usage.caching!.hitTokens,
-    ).toBe(80);
+    expect((done as { usage: { caching: { hitTokens: number } } }).usage.caching!.hitTokens).toBe(
+      80,
+    );
   });
 
   it("stream() throws on non-ok response", async () => {

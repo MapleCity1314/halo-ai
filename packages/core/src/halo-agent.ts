@@ -87,10 +87,7 @@ export class HaloAgent {
    * Accepts a string (plain input) or `ChatMessage[]` (AI SDK useChat integration).
    * Returns a `StreamTextResult` with multiple consumption paths.
    */
-  streamText(
-    input: string | ChatMessage[],
-    opts?: StreamTextOptions,
-  ): StreamTextResult {
+  streamText(input: string | ChatMessage[], opts?: StreamTextOptions): StreamTextResult {
     return this._impl.streamText(input, opts);
   }
 
@@ -132,9 +129,7 @@ export class HaloAgent {
    * and streams the response. When tools with `execute` are present,
    * the full tool-call loop runs automatically via `run()`.
    */
-  async *sdkStream(
-    messages: { role: string; content: string }[],
-  ): AsyncGenerator<TurnChunk> {
+  async *sdkStream(messages: { role: string; content: string }[]): AsyncGenerator<TurnChunk> {
     yield* this._impl.sdkStream(messages);
   }
 

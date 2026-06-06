@@ -34,5 +34,3 @@ export interface RepairResult {
 export interface RepairStrategy {
   repair(toolCalls: ToolCall[], rawContent: string): RepairResult;
 }
-
-
