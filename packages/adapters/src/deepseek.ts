@@ -1,5 +1,13 @@
-import type { Usage, TurnChunk, ToolCall } from "@halo-sdk/core";
-import type { ModelAdapter, ModelCapabilities, PricingInfo, ChatParams, ModelCallOptions } from "@halo-sdk/core";
+import type {
+  Usage,
+  TurnChunk,
+  ToolCall,
+  ModelAdapter,
+  ModelCapabilities,
+  PricingInfo,
+  ChatParams,
+  ModelCallOptions,
+} from "@halo-sdk/core";
 
 export class DeepSeekAdapter implements ModelAdapter {
   readonly modelId: string;
@@ -24,9 +32,7 @@ export class DeepSeekAdapter implements ModelAdapter {
     this._baseUrl = (opts.baseUrl ?? "https://api.deepseek.com").replace(/\/+$/, "");
   }
 
-  async chat(
-    params: ChatParams,
-  ): Promise<{
+  async chat(params: ChatParams): Promise<{
     content: string;
     toolCalls: ToolCall[];
     usage: Usage;
@@ -82,9 +88,7 @@ export class DeepSeekAdapter implements ModelAdapter {
     return { content, toolCalls, usage };
   }
 
-  async *stream(
-    params: ChatParams,
-  ): AsyncGenerator<TurnChunk> {
+  async *stream(params: ChatParams): AsyncGenerator<TurnChunk> {
     const { prefix, history, tools, responseFormat, options } = params;
     const messages = [...prefix, ...history];
     const body: Record<string, unknown> = {
@@ -116,10 +120,7 @@ export class DeepSeekAdapter implements ModelAdapter {
     let buffer = "";
 
     // Accumulate streaming tool-call deltas → emit tool-call-ready when complete.
-    const tcBuilder = new Map<
-      number,
-      { name: string; arguments: string; id: string }
-    >();
+    const tcBuilder = new Map<number, { name: string; arguments: string; id: string }>();
 
     const flushToolCalls = async function* () {
       for (const [index, tc] of tcBuilder) {
@@ -189,12 +190,8 @@ export class DeepSeekAdapter implements ModelAdapter {
                 yield {
                   type: "tool-call-delta",
                   index: idx,
-                  name: tc.function
-                    ? String(tc.function.name ?? "")
-                    : undefined,
-                  argumentsDelta: tc.function
-                    ? String(tc.function.arguments ?? "")
-                    : undefined,
+                  name: tc.function ? String(tc.function.name ?? "") : undefined,
+                  argumentsDelta: tc.function ? String(tc.function.arguments ?? "") : undefined,
                 };
               }
             }
@@ -204,8 +201,7 @@ export class DeepSeekAdapter implements ModelAdapter {
               const completionTokens = usageRaw.completion_tokens ?? 0;
               const cacheHit = usageRaw.prompt_cache_hit_tokens ?? 0;
               const cacheMiss =
-                usageRaw.prompt_cache_miss_tokens ??
-                Math.max(0, promptTokens - cacheHit);
+                usageRaw.prompt_cache_miss_tokens ?? Math.max(0, promptTokens - cacheHit);
 
               // Emit tool-call-ready for all accumulated tool calls
               // before the final done chunk.
@@ -219,10 +215,7 @@ export class DeepSeekAdapter implements ModelAdapter {
                   caching: {
                     hitTokens: cacheHit,
                     missTokens: cacheMiss,
-                    hitRate:
-                      cacheHit + cacheMiss > 0
-                        ? cacheHit / (cacheHit + cacheMiss)
-                        : 0,
+                    hitRate: cacheHit + cacheMiss > 0 ? cacheHit / (cacheHit + cacheMiss) : 0,
                   },
                 },
               };

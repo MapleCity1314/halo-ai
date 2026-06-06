@@ -1,7 +1,14 @@
 import { StablePrefix } from "./prefix.js";
 import { MessageLog } from "./log.js";
 import { normalizeTools, definitionToSpec } from "./tool-utils.js";
-import type { ChatMessage, ToolCall, ToolDefinition, ToolSpec, Usage } from "./types.js";
+import type {
+  ChatMessage,
+  ToolCall,
+  ToolDefinition,
+  ToolSpec,
+  Usage,
+  ResponseFormat,
+} from "./types.js";
 import type {
   TurnResult,
   TurnChunk,
@@ -12,12 +19,10 @@ import type {
   ModelConfig,
   StreamTextOptions,
   StreamTextResult,
-  SkillMetadata,
   GenerateObjectOptions,
   GenerateObjectResult,
 } from "./session.js";
 import type { ModelAdapter, ModelCallOptions } from "./model-adapter.js";
-import type { ResponseFormat } from "./types.js";
 import type { Sandbox, ToolContext } from "./sandbox.js";
 import type { ContextStrategy, RepairStrategy } from "./strategies.js";
 
@@ -90,8 +95,7 @@ export class HaloAgentImpl {
         type: "function",
         function: {
           name: reservedName,
-          description:
-            "Load a skill to get specialized instructions for a specific task.",
+          description: "Load a skill to get specialized instructions for a specific task.",
           parameters: {
             type: "object",
             properties: {
@@ -110,9 +114,7 @@ export class HaloAgentImpl {
       // The execute function reads SKILL.md at runtime.
       this._toolExecutors.set(reservedName, async (args: Record<string, unknown>) => {
         const skillName = String(args.name ?? "").toLowerCase();
-        const skill = skills.find(
-          (s) => s.name.toLowerCase() === skillName,
-        );
+        const skill = skills.find((s) => s.name.toLowerCase() === skillName);
         if (!skill) {
           const available = skills.map((s) => s.name).join(", ");
           return `Skill "${skillName}" not found. Available: ${available}`;
@@ -253,9 +255,7 @@ export class HaloAgentImpl {
    *
    * Cache-first: only `_log` is modified via hydrate(), `_prefix` is untouched.
    */
-  async *sdkStream(
-    messages: { role: string; content: string }[],
-  ): AsyncGenerator<TurnChunk> {
+  async *sdkStream(messages: { role: string; content: string }[]): AsyncGenerator<TurnChunk> {
     // Convert UIMessages → ChatMessages (system role is already in prefix).
     const chatMessages: ChatMessage[] = messages
       .filter((m) => m.role !== "system")
@@ -348,10 +348,7 @@ export class HaloAgentImpl {
    * Streaming entry with full tool-call loop.
    * Accepts both a plain string and a ChatMessage[] (for AI SDK useChat integration).
    */
-  streamText(
-    input: string | ChatMessage[],
-    opts?: StreamTextOptions,
-  ): StreamTextResult {
+  streamText(input: string | ChatMessage[], opts?: StreamTextOptions): StreamTextResult {
     return new StreamTextResultImpl(this._streamWithToolLoop(input, opts));
   }
 
@@ -359,15 +356,8 @@ export class HaloAgentImpl {
     input: string | ChatMessage[],
     opts?: StreamTextOptions,
   ): AsyncGenerator<TurnChunk> {
-    const {
-      maxSteps,
-      onToolCall,
-      onChunk,
-      onStepFinish,
-      onFinish,
-      onError,
-      ...callOptions
-    } = opts ?? {};
+    const { maxSteps, onToolCall, onChunk, onStepFinish, onFinish, onError, ...callOptions } =
+      opts ?? {};
 
     // Normalize input.
     if (typeof input === "string") {
@@ -620,7 +610,10 @@ export class HaloAgentImpl {
    * Detects execute.length: 2 params → passes ToolContext.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async _executeTool(call: ToolCall, executor: (args: Record<string, unknown>, ctx?: ToolContext) => any): Promise<string> {
+  private async _executeTool(
+    call: ToolCall,
+    executor: (args: Record<string, unknown>, ctx?: ToolContext) => any,
+  ): Promise<string> {
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(call.function.arguments);
@@ -779,17 +772,11 @@ async function convertToResponseFormat(schema: any): Promise<ResponseFormat> {
         "zod-to-json-schema is required for Zod schema support. Install it as a peer dependency.",
       );
     }
-  } else if (
-    typeof schema === "object" &&
-    schema !== null &&
-    "type" in schema
-  ) {
+  } else if (typeof schema === "object" && schema !== null && "type" in schema) {
     // Plain JSON Schema — passthrough.
     jsonSchema = schema as Record<string, unknown>;
   } else {
-    throw new Error(
-      "schema must be a Zod schema or a plain JSON Schema object.",
-    );
+    throw new Error("schema must be a Zod schema or a plain JSON Schema object.");
   }
 
   // Extract schema name from the JSON Schema (if present) or use "output".
@@ -931,6 +918,7 @@ class StreamTextResultImpl implements StreamTextResult {
     }
     this._started = true;
 
+    // eslint-disable-next-line typescript/no-this-alias
     const self = this;
     const source = this._source;
     return new ReadableStream<Uint8Array>({
@@ -1005,21 +993,15 @@ class StreamTextResultImpl implements StreamTextResult {
                   const chunk: any = JSON.parse(trimmed);
                   switch (chunk.type) {
                     case "text-delta":
-                      controller.enqueue(
-                        encoder.encode(`0:${JSON.stringify(chunk.delta)}\n`),
-                      );
+                      controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.delta)}\n`));
                       break;
                     case "tool-call-delta":
                     case "tool-call-ready":
-                      controller.enqueue(
-                        encoder.encode(`9:${JSON.stringify([chunk])}\n`),
-                      );
+                      controller.enqueue(encoder.encode(`9:${JSON.stringify([chunk])}\n`));
                       break;
                     case "done":
                       controller.enqueue(
-                        encoder.encode(
-                          `d:${JSON.stringify({ usage: chunk.usage })}\n`,
-                        ),
+                        encoder.encode(`d:${JSON.stringify({ usage: chunk.usage })}\n`),
                       );
                       break;
                   }
@@ -1052,5 +1034,3 @@ class StreamTextResultImpl implements StreamTextResult {
     }
   }
 }
-
-

@@ -28,30 +28,45 @@ Open [http://localhost:3000](http://localhost:3000).
 useChat()                         POST /api/chat
 (@ai-sdk/react) ──────────────►  route.ts
                                   │
-                                  ├─ DeepSeekAdapter
-                                  ├─ adapter.stream(prefix, history)
-                                  └─ toDataStream()
-                                      │
-◄────────────────────────────────────┘
-    SSE (0:/d: protocol)
+                                  ├─ createWeatherAgent()
+                                  │    ├─ agent/weather-agent.ts  (Halo factory)
+                                  │    └─ tool/weather-tool.ts    (Tool def + execute)
+                                  │
+                                  └─ streamText(messages)
+                                       .toDataStream()
+                                       → SSE (0:/d: protocol)
 ```
+
+### Modular design
+
+| Layer | File                     | Responsibility                  |
+| ----- | ------------------------ | ------------------------------- |
+| Tool  | `tool/weather-tool.ts`   | Tool spec + execute function    |
+| Agent | `agent/weather-agent.ts` | Halo factory + agent definition |
+| Route | `app/api/chat/route.ts`  | Parse request → stream → return |
+
+This separation makes tools **reusable across agents** and agents **testable in isolation**.
 
 ### Cache-first
 
-The API route sends the **system prompt as a stable prefix** and the
-**conversation as dynamic history**. DeepSeek's prefix caching automatically
-reuses the KV-cache for the system prompt across requests, reducing token costs
-by ~74%.
+The API route creates a fresh agent per request. Since the **system prompt + tool specs** are identical, the `StablePrefix` fingerprint matches → DeepSeek reuses the KV-cache. Only the conversation history counts as uncached tokens.
 
-For production with tool calling and full cache tracking, see the
-`HaloSession` pattern in the route's comment block.
+### streamText (preferred API)
+
+Replaces the deprecated `sdkStream()`. `streamText()` supports:
+
+- Named callbacks (`onFinish`, `onError`, `onStepFinish`, `onChunk`)
+- Multiple consumption paths (`.toDataStream()`, `.toAsyncIterable()`, `.text`, `.usage`)
+- Full tool-call loop with auto-execute
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `app/api/chat/route.ts` | SSE endpoint — adapter.stream + toDataStream |
-| `app/page.tsx` | Chat page shell |
-| `app/layout.tsx` | Root layout with Tailwind |
-| `components/chat.tsx` | Chat UI — useChat hook, message bubbles, input |
-| `.env.local.example` | Required env: `DEEPSEEK_API_KEY` |
+| File                     | Purpose                                         |
+| ------------------------ | ----------------------------------------------- |
+| `agent/weather-agent.ts` | Agent factory — Halo + DeepSeekAdapter + tools  |
+| `tool/weather-tool.ts`   | Weather tool — spec + typed execute             |
+| `app/api/chat/route.ts`  | SSE endpoint — streamText + toDataStream        |
+| `app/page.tsx`           | Chat page shell                                 |
+| `app/layout.tsx`         | Root layout with Tailwind                       |
+| `components/chat.tsx`    | Chat UI — useChat hook, message bubbles, inputs |
+| `.env.local.example`     | Required env: `DEEPSEEK_API_KEY`                |

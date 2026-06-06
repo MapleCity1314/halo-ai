@@ -1,6 +1,5 @@
 import { posix as pathPosix } from "node:path";
-import type { ToolDefinition, Sandbox } from "@halo-sdk/core";
-import { SandboxError } from "@halo-sdk/core";
+import { SandboxError, type ToolDefinition, type Sandbox } from "@halo-sdk/core";
 
 /**
  * In-memory virtual filesystem implementing the Sandbox interface.
@@ -58,7 +57,9 @@ export class VirtualSandbox implements Sandbox {
     try {
       const normalized = this._resolve(path);
       return this._files.has(normalized) || this._dirs.has(normalized);
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   async dispose(): Promise<void> {
@@ -67,21 +68,35 @@ export class VirtualSandbox implements Sandbox {
   }
 
   tools(): Record<string, ToolDefinition> {
+    // eslint-disable-next-line typescript/no-this-alias
     const sandbox: Sandbox = this;
     return {
       readFile: {
         description: "Read a file from the sandbox filesystem",
-        parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+        parameters: {
+          type: "object",
+          properties: { path: { type: "string" } },
+          required: ["path"],
+        },
         execute: (args) => sandbox.readFile(String(args.path)),
       },
       writeFile: {
         description: "Write content to a file in the sandbox",
-        parameters: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"] },
-        execute: (args) => sandbox.writeFile(String(args.path), String(args.content)).then(() => "File written."),
+        parameters: {
+          type: "object",
+          properties: { path: { type: "string" }, content: { type: "string" } },
+          required: ["path", "content"],
+        },
+        execute: (args) =>
+          sandbox.writeFile(String(args.path), String(args.content)).then(() => "File written."),
       },
       readdir: {
         description: "List files and directories in a sandbox directory",
-        parameters: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+        parameters: {
+          type: "object",
+          properties: { path: { type: "string" } },
+          required: ["path"],
+        },
         execute: async (args) => JSON.stringify(await sandbox.readdir(String(args.path))),
       },
     };

@@ -1,5 +1,4 @@
 import type {
-  ChatMessage,
   ToolCall,
   ToolSpec,
   Usage,
@@ -30,11 +29,11 @@ export class MockAdapter implements ModelAdapter {
   chatFn:
     | ((params: ChatParams) => Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }>)
     | null = null;
-  streamFn:
-    | ((params: ChatParams) => AsyncGenerator<TurnChunk>)
-    | null = null;
+  streamFn: ((params: ChatParams) => AsyncGenerator<TurnChunk>) | null = null;
 
-  async chat(params: ChatParams): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
+  async chat(
+    params: ChatParams,
+  ): Promise<{ content: string; toolCalls: ToolCall[]; usage: Usage }> {
     if (!this.chatFn) throw new Error("MockAdapter.chat not configured");
     return this.chatFn(params);
   }

@@ -32,7 +32,7 @@ jobs:
 
       - name: Create Release PR or Publish
         id: changesets
-        uses: changesets/action@f6f0cd06a62ac73eb40bbc4d7ead15e4ee989082 # v1.5.3
+        uses: changesets/action@v1
         with:
           publish: pnpm run ci:release
           commit: "chore: version packages"

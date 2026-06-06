@@ -1,56 +1,39 @@
-import { toDataStream } from "@halo-sdk/stream";
-import { DeepSeekAdapter } from "@halo-sdk/adapters";
-import { Halo, tool } from "@halo-sdk/core";
-
-const halo = new Halo({
-  adapter: new DeepSeekAdapter({
-    apiKey: process.env.DEEPSEEK_API_KEY!,
-  }),
-});
+import { createWeatherAgent } from "@/agent/weather-agent";
 
 /**
  * POST /api/chat
  *
- * Cache-first weather agent. Each request hydrates prior history
- * and streams the response. The system prompt + tools form a stable
- * prefix that DeepSeek caches across requests.
+ * Cache-first weather agent using streamText (preferred API).
+ *
+ * ── Architecture ──
+ *   agent/weather-agent.ts   → Halo factory + agent definition
+ *   tool/weather-tool.ts     → Weather tool (spec + execute)
+ *   route.ts                 → Thin handler — parse, stream, return
+ *
+ * ── Cache model ──
+ *   StablePrefix (cached):     system prompt + get_weather spec
+ *   MessageLog (uncached):     conversation history from useChat
+ *
+ * streamText replaces the deprecated sdkStream() — it supports
+ * named callbacks (onFinish, onError) and returns StreamTextResult
+ * with multiple consumption paths.
  */
 export async function POST(req: Request) {
   const { messages } = (await req.json()) as {
     messages: { role: string; content: string }[];
   };
 
-  const agent = halo.agent({
-    system:
-      "You are a helpful weather assistant. When asked about weather, use get_weather. Reply in the user's language.",
-    tools: {
-      get_weather: tool({
-        description: "Get current weather for a city",
-        parameters: {
-          type: "object",
-          properties: {
-            city: {
-              type: "string",
-              description: "City name",
-            },
-          },
-          required: ["city"],
-        },
-        execute: async ({ city }: { city: string }) => {
-          const weather: Record<string, string> = {
-            beijing: "Beijing: 5°C, clear sky, humidity 30%",
-            shanghai: "Shanghai: 12°C, cloudy, humidity 65%",
-            tokyo: "Tokyo: 8°C, light rain, humidity 80%",
-            paris: "Paris: 11°C, partly cloudy, humidity 55%",
-            london: "London: 7°C, drizzle, humidity 75%",
-            "new york": "New York: 2°C, snow, humidity 60%",
-          };
-          const key = city.toLowerCase();
-          return weather[key] ?? `${city}: 20°C, sunny, humidity 40%`;
-        },
-      }),
-    },
-  });
+  const agent = createWeatherAgent();
 
-  return toDataStream(agent.sdkStream(messages));
+  return agent
+    .streamText(messages, {
+      maxSteps: 10,
+      onFinish: ({ steps, usage }) => {
+        console.log(
+          `[chat] ${steps} steps, ${usage.promptTokens}+${usage.completionTokens} tokens`,
+        );
+      },
+      onError: (err) => console.error("[chat]", err.message),
+    })
+    .toDataStream();
 }

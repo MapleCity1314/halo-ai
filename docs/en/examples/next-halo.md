@@ -1,104 +1,98 @@
 # Next.js Chat Example
 
-A complete chat application with Halo, DeepSeek, and Next.js App Router.
+A complete chat application with Halo, DeepSeek, and Next.js App Router — **modular agent/tool/route architecture**.
+
+> 📂 Source: [`examples/next-halo/`](https://github.com/halo-sdk/halo-ai/tree/main/examples/next-halo)
 
 ## Overview
 
 This example demonstrates:
 
-- **Cache-First streaming**: System prompt cached via DeepSeek prefix caching
-- **Tool calling**: Weather lookup with auto-execute
+- **Modular design**: Agent, tool, and route in separate files — tools reusable across agents
+- **Cache-First streaming**: System prompt + tool specs cached via `StablePrefix`
+- **Tool auto-execute**: `streamText` with full tool-call loop
 - **useChat integration**: Vercel AI SDK compatible via `toDataStream()`
-- **Tool visualization**: UI badges for tool invocations
 
 ## Project Structure
 
 ```
 examples/next-halo/
+  agent/
+    weather-agent.ts     # Halo factory + agent definition
+  tool/
+    weather-tool.ts      # Weather tool (typed spec + execute)
   app/
+    api/chat/
+      route.ts           # Thin handler — parse, streamText, toDataStream
     layout.tsx           # Root layout with Tailwind dark theme
     page.tsx             # Chat page shell
-    globals.css          # Tailwind directives
-    api/chat/
-      route.ts           # POST handler — agent.sdkStream() + toDataStream()
   components/
-    chat.tsx             # useChat hook + message bubbles + input form
+    chat.tsx             # useChat hook + message bubbles + tool badges
   .env.local.example     # DEEPSEEK_API_KEY=xxx
 ```
 
-## Route Handler
+## Tool
 
 ```ts
-// app/api/chat/route.ts
-import { Halo, tool } from "@halo-ai/core";
-import { DeepSeekAdapter } from "@halo-ai/adapters";
-import { toDataStream } from "@halo-ai/stream";
+// tool/weather-tool.ts
+import { tool } from "@halo-sdk/core";
+
+export const weatherTool = tool<{ city: string }>({
+  description: "Get current weather for a city",
+  parameters: {
+    type: "object",
+    properties: { city: { type: "string" } },
+    required: ["city"],
+  },
+  execute: async ({ city }) => {
+    const data: Record<string, string> = {
+      beijing: "5°C, clear",
+      tokyo: "8°C, light rain",
+      paris: "11°C, partly cloudy",
+    };
+    return data[city.toLowerCase()] ?? `${city}: 20°C, sunny`;
+  },
+});
+```
+
+## Agent
+
+```ts
+// agent/weather-agent.ts
+import { Halo } from "@halo-sdk/core";
+import { DeepSeekAdapter } from "@halo-sdk/adapters";
+import { weatherTool } from "@/tool/weather-tool";
 
 const halo = new Halo({
   adapter: new DeepSeekAdapter({ apiKey: process.env.DEEPSEEK_API_KEY! }),
 });
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  const agent = halo.agent({
-    system: "You are a helpful weather assistant.",
-    tools: {
-      get_weather: tool({
-        description: "Get current weather for a city",
-        parameters: {
-          type: "object",
-          properties: { city: { type: "string" } },
-          required: ["city"],
-        },
-        execute: async ({ city }) => {
-          const data: Record<string, string> = {
-            beijing: "5°C, clear",
-            tokyo: "8°C, light rain",
-            paris: "11°C, partly cloudy",
-          };
-          return data[city.toLowerCase()] ?? `${city}: 20°C, sunny`;
-        },
-      }),
-    },
+export function createWeatherAgent() {
+  return halo.agent({
+    messages: [{ role: "system", content: "You are a helpful weather assistant." }],
+    tools: { get_weather: weatherTool },
+    model: { temperature: 0.7 },
   });
-
-  return toDataStream(agent.sdkStream(messages));
 }
 ```
 
-## Chat Component
+## Route Handler — streamText (preferred API)
 
-```tsx
-// components/chat.tsx
-"use client";
-import { useChat } from "@ai-sdk/react";
+```ts
+// app/api/chat/route.ts
+import { createWeatherAgent } from "@/agent/weather-agent";
 
-export function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat();
+export async function POST(req: Request) {
+  const { messages } = await req.json();
 
-  return (
-    <div>
-      {messages.map((m) => (
-        <div key={m.id}>
-          {/* Tool invocations */}
-          {m.parts?.map((part, i) =>
-            part.type === "tool-invocation" ? (
-              <div key={i}>
-                {part.toolInvocation.toolName}: {part.toolInvocation.result}
-              </div>
-            ) : null
-          )}
-          {/* Text content */}
-          {m.content && <p>{m.content}</p>}
-        </div>
-      ))}
-      <form onSubmit={handleSubmit}>
-        <input value={input} onChange={handleInputChange} disabled={status !== "ready"} />
-        <button type="submit">Send</button>
-      </form>
-    </div>
-  );
+  const agent = createWeatherAgent();
+
+  return agent
+    .streamText(messages, {
+      maxSteps: 10,
+      onFinish: ({ steps, usage }) => console.log(`Done: ${steps} steps`),
+    })
+    .toDataStream();
 }
 ```
 

@@ -1,0 +1,23 @@
+{
+  "name": "@example/hono-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "type-check": "tsc --build"
+  },
+  "dependencies": {
+    "@halo-sdk/adapters": "workspace:*",
+    "@halo-sdk/core": "workspace:*",
+    "@halo-sdk/stream": "workspace:*",
+    "@hono/node-server": "^1.13.7",
+    "dotenv": "^16.4.5",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "tsx": "^4.19.2",
+    "typescript": "~5.8.3"
+  }
+}
