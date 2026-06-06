@@ -14,13 +14,14 @@ English | [简体中文](./docs/index.md)
 
 ## 🧠 Why Halo? (The Caching Bottleneck)
 
-Most agent frameworks (like LangChain or LlamaIndex) treat LLM interactions as stateless API calls. In multi-turn agent loops (ReAct, Planning, Reflection), the entire context—including long system guidelines, complex tool schemas, and dialog history—is sent to the model repeatedly. 
+Most agent frameworks (like LangChain or LlamaIndex) treat LLM interactions as stateless API calls. In multi-turn agent loops (ReAct, Planning, Reflection), the entire context—including long system guidelines, complex tool schemas, and dialog history—is sent to the model repeatedly.
 
 This causes two major issues in production:
+
 1. **Redundant Cost**: You pay to re-evaluate the same system prompt and tools on every single turn.
 2. **High Latency**: The Time-to-First-Token (TTFT) scales linearly with the size of the history as the model re-processes the prompt.
 
-**Halo fixes this by locking a Stable Prefix.** 
+**Halo fixes this by locking a Stable Prefix.**
 
 Halo compiles your system prompt, schemas, and stable context into a cacheable prefix. During the agent loop, Halo ensures the prompt structure matches the provider's alignment requirements perfectly, keeping the cache "hot."
 
@@ -41,28 +42,29 @@ Halo compiles your system prompt, schemas, and stable context into a cacheable p
 Halo is designed following the Unix philosophy—highly cohesive, modular packages:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                      @halo-sdk/core                     │
-│    Factory, Agent Loop, Message Log & Stable Prefix    │
-└───────────┬──────────────────────────────┬─────────────┘
-            ▼                              ▼
-┌───────────────────────┐      ┌─────────────────────────┐
-│   @halo-sdk/adapters   │      │   @halo-sdk/strategies   │
-│   DeepSeek / Anthropic│      │   Truncate & Self-Repair│
-└───────────────────────┘      └─────────────────────────┘
-            │                              │
-            └──────────────┬───────────────┘
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│                     @halo-sdk/stream                    │
-│    Full-Pipeline Stream Event Pipeline (Next.js/etc)   │
-└────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                     @halo-sdk/core                       │
+│     Factory, Agent Loop, Message Log & Stable Prefix    │
+└──────┬────────────┬────────────┬────────────┬───────────┘
+       ▼            ▼            ▼            ▼
+┌─────────────┐ ┌─────────────┐ ┌────────────┐ ┌──────────────┐
+│  adapters   │ │ strategies  │ │   stream   │ │     mcp      │
+│  DeepSeek   │ │ Truncate &  │ │ SSE &      │ │ MCP server   │
+│  + custom   │ │ Self-Repair │ │ DataStream │ │ tool bridge  │
+└─────────────┘ └─────────────┘ └────────────┘ └──────────────┘
+                                               ┌──────────────┐
+                                               │   sandbox    │
+                                               │ Virtual &    │
+                                               │ Container FS │
+                                               └──────────────┘
 ```
 
-- **`@halo-sdk/core`**: Core engine managing agent execution, context lifecycles, and stable prefix compilation.
-- **`@halo-sdk/adapters`**: Caching-aware adapters converting raw LLM provider payloads to Halo's caching structure.
-- **`@halo-sdk/strategies`**: Self-healing strategies (e.g., `BasicRepair` to fix bad model tool calls) and memory rules.
-- **`@halo-sdk/stream`**: Dynamic serialization engine to pipe real-time agent execution events to the client.
+- **`@halo-sdk/core`**: Core engine — `Halo` factory, `HaloAgent`, `StablePrefix`, `MessageLog`, tool system, and skills.
+- **`@halo-sdk/adapters`**: Model adapters — `DeepSeekAdapter` with prefix cache support, plus the `ModelAdapter` interface for custom providers.
+- **`@halo-sdk/strategies`**: Pluggable strategies — `TruncateStrategy` for context window management, `BasicRepair` for fixing malformed tool-call JSON.
+- **`@halo-sdk/stream`**: Streaming utilities — `toDataStream()` for SSE Responses compatible with Vercel AI SDK.
+- **`@halo-sdk/mcp`**: MCP integration — bridge external MCP tools into Halo agents via `createMCPServer()`.
+- **`@halo-sdk/sandbox`**: Secure filesystem + command execution — `VirtualSandbox` (cross-platform) and `ContainerSandbox` (Node.js).
 
 ---
 
@@ -91,48 +93,35 @@ Open `.env` and set your key (e.g. `DEEPSEEK_API_KEY` or `OPENAI_API_KEY`).
 
 ### 3. Usage Example
 
-Here is how you spin up a cache-first agent using the DeepSeek adapter and tool execution:
+```ts
+import { Halo, tool } from "@halo-sdk/core";
+import { DeepSeekAdapter } from "@halo-sdk/adapters";
 
-```typescript
-import { Halo, StablePrefix } from '@halo-sdk/core';
-import { deepseek } from '@halo-sdk/adapters';
-import { tool } from '@halo-sdk/core'; // Helper to declare tools
-import { z } from 'zod';
-
-// 1. Declare tools with strong schemas
-const calculateWeather = tool({
-  description: 'Get the current weather for a location',
-  parameters: z.object({
-    city: z.string().describe('The city name'),
-  }),
-  execute: async ({ city }) => {
-    return { temperature: '22°C', condition: 'Sunny' };
-  }
+const halo = new Halo({
+  adapter: new DeepSeekAdapter({ apiKey: process.env.DEEPSEEK_API_KEY! }),
 });
 
-// 2. Initialize a Cache-First Agent
-const agent = new Halo({
-  model: deepseek('deepseek-chat'),
-  prefix: new StablePrefix({
-    system: 'You are a precise weather analyst assistant.',
-    tools: { calculateWeather },
-  })
+const agent = halo.agent({
+  messages: [{ role: "system", content: "You are a helpful weather assistant." }],
+  tools: {
+    weather: tool({
+      description: "Get current weather for a city",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
+      },
+      execute: async ({ city }) => `Sunny, 22°C in ${city}`,
+    }),
+  },
 });
 
-// 3. Run the Agent loop
-const stream = await agent.run({
-  prompt: 'What is the weather in Paris, and what should I wear?',
-  cache: 'first' // Forces dynamic prefix caching
-});
+const result = await agent.generateText("What's the weather in Paris?");
+console.log(result.content);
+// → "The weather in Paris is sunny, 22°C."
 
-// 4. Consume events (streaming text, tool execution logs, and thinking traces)
-for await (const event of stream) {
-  if (event.type === 'text-delta') {
-    process.stdout.write(event.text);
-  } else if (event.type === 'tool-call') {
-    console.log(`\n[Executing Tool] ${event.name} with args:`, event.args);
-  }
-}
+// Check cache savings
+console.log(`Cache hit rate: ${(agent.stats.caching?.cacheHitRate ?? 0) * 100}%`);
 ```
 
 ---
@@ -141,18 +130,18 @@ for await (const event of stream) {
 
 We use [Turbo](https://turbo.build/) to manage our workspace build and test pipeline:
 
-| Script | Description |
-|---|---|
-| `pnpm setup` | Installs all workspace dependencies and builds packages sequentially. |
-| `pnpm build` | Compiles all packages in parallel using Turborepo. |
-| `pnpm test` | Runs the Vitest test suite across all packages. |
-| `pnpm dev` | Starts development watch mode across packages. |
-| `pnpm docs:dev` | Launches the redesigned VitePress documentation site locally. |
-| `pnpm docs:build` | Compiles the VitePress documentation site for production deployment. |
-| `pnpm example:dev` | Launches the Next.js App Router chat example application. |
-| `pnpm lint` | Runs eslint and linter checks across all packages. |
-| `pnpm format` | Formats all code using prettier/eslint. |
-| `pnpm clean` | Cleans up builds, dist folders, and cache artifacts. |
+| Script             | Description                                                           |
+| ------------------ | --------------------------------------------------------------------- |
+| `pnpm setup`       | Installs all workspace dependencies and builds packages sequentially. |
+| `pnpm build`       | Compiles all packages in parallel using Turborepo.                    |
+| `pnpm test`        | Runs the Vitest test suite across all packages.                       |
+| `pnpm dev`         | Starts development watch mode across packages.                        |
+| `pnpm docs:dev`    | Launches the redesigned VitePress documentation site locally.         |
+| `pnpm docs:build`  | Compiles the VitePress documentation site for production deployment.  |
+| `pnpm example:dev` | Launches the Next.js App Router chat example application.             |
+| `pnpm lint`        | Runs eslint and linter checks across all packages.                    |
+| `pnpm format`      | Formats all code using prettier/eslint.                               |
+| `pnpm clean`       | Cleans up builds, dist folders, and cache artifacts.                  |
 
 ---
 
