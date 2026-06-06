@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "*.tsbuildinfo"],
+      "outputs": ["dist/**"],
       "env": ["DEEPSEEK_API_KEY"]
     },
     "test": {
@@ -25,6 +25,9 @@
       "cache": false
     },
     "lint": {
+      "cache": false
+    },
+    "publint": {
       "cache": false
     },
     "format": {

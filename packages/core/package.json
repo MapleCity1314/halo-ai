@@ -2,15 +2,15 @@
   "name": "@halo-sdk/core",
   "version": "1.0.0",
   "description": "Core types, factory, and session management for Halo AI SDK — cache-aware agent with automatic tool-call loop",
-  "license": "MIT",
   "keywords": [
-    "ai",
-    "llm",
     "agent",
+    "ai",
     "cache-first",
     "deepseek",
+    "llm",
     "tool-calling"
   ],
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/halo-sdk/halo-ai",
@@ -25,15 +25,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc --build --emitDeclarationOnly && tsup",
+    "dev": "tsup --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "publint": "publint",
     "test": "vitest run",
     "test:watch": "vitest"
   },

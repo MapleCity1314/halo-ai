@@ -26,6 +26,7 @@
     "test": "turbo test",
     "test:watch": "turbo test:watch",
     "lint": "oxlint packages",
+    "publint": "turbo publint",
     "format": "oxfmt packages",
     "format:check": "oxfmt --check packages",
     "typecheck": "tsc --build",
@@ -42,10 +43,13 @@
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
     "@types/node": "^22.0.0",
+    "del-cli": "^7.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
+    "publint": "^0.3.21",
+    "tsup": "^8.5.1",
     "turbo": "^2.0.0",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"

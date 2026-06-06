@@ -1,5 +1,8 @@
 {
-  "files": [],
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
   "references": [
     { "path": "packages/core" },
     { "path": "packages/adapters" },
@@ -7,5 +10,7 @@
     { "path": "packages/stream" },
     { "path": "packages/mcp" },
     { "path": "packages/sandbox" }
-  ]
+  ],
+  "include": ["examples/**/*.ts", "examples/**/*.tsx"],
+  "exclude": ["examples/**/node_modules", "examples/**/.next"]
 }
